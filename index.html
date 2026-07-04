@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Биология · Тесты по учебнику Тейлора, Грина, Стаута (Том 1)</title>
+<style>
+  :root{
+    --bg:#0f1720; --bg2:#16212e; --card:#1b2836; --card2:#22303f;
+    --ink:#e8eef4; --muted:#93a4b5; --line:#2c3d4f;
+    --green:#2fbf71; --green-d:#1f8f52; --red:#e5534b; --red-d:#b23c35;
+    --accent:#38bdf8; --accent-d:#0ea5e9; --amber:#f0b429;
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 70% -10%,#1c2c3d 0%,var(--bg) 55%);
+    color:var(--ink); min-height:100vh; line-height:1.55;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:24px 18px 80px}
+  header.top{text-align:center;padding:18px 0 8px}
+  header.top .kicker{color:var(--accent);font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:12px}
+  header.top h1{font-size:26px;margin:6px 0 4px;font-weight:700}
+  header.top p{color:var(--muted);margin:0;font-size:14px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:22px}
+  .chapter{
+    background:linear-gradient(180deg,var(--card),var(--card2));
+    border:1px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;
+    transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;position:relative;overflow:hidden;
+  }
+  .chapter:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:var(--shadow)}
+  .chapter .ic{font-size:30px;line-height:1}
+  .chapter h3{margin:10px 0 4px;font-size:16px}
+  .chapter .d{color:var(--muted);font-size:13px;min-height:34px}
+  .chapter .meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:var(--muted)}
+  .best{background:rgba(47,191,113,.15);color:var(--green);padding:3px 8px;border-radius:20px;font-weight:600}
+  .best.none{background:rgba(147,164,181,.12);color:var(--muted)}
+
+  .cta{
+    display:block;width:100%;text-align:center;margin:22px 0 6px;padding:15px;
+    background:linear-gradient(90deg,var(--accent-d),var(--accent));color:#07202b;
+    border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:var(--shadow);
+  }
+  .cta:hover{filter:brightness(1.05)}
+  .cta.secondary{background:transparent;color:var(--muted);border:1px solid var(--line);box-shadow:none;font-weight:600}
+  .cta.secondary:hover{color:var(--ink);border-color:var(--accent)}
+
+  /* Quiz */
+  .quiz{display:none}
+  .qhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+  .qhead .qtitle{font-weight:700;font-size:15px}
+  .qhead .qcount{color:var(--muted);font-size:13px;white-space:nowrap}
+  .bar{height:8px;background:var(--card);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
+  .bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent-d),var(--green));transition:width .35s ease}
+  .card{
+    background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);
+    border-radius:18px;padding:22px;margin-top:18px;box-shadow:var(--shadow)
+  }
+  .qtext{font-size:18px;font-weight:600;margin:0 0 16px}
+  .opts{display:flex;flex-direction:column;gap:10px}
+  .opt{
+    text-align:left;background:var(--bg2);border:1.5px solid var(--line);border-radius:12px;
+    padding:13px 15px;color:var(--ink);font-size:15px;cursor:pointer;transition:all .12s ease;display:flex;gap:10px;align-items:flex-start
+  }
+  .opt:hover:not(.locked){border-color:var(--accent);background:#1a2735}
+  .opt .mark{flex:0 0 22px;height:22px;border-radius:50%;border:2px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;margin-top:1px}
+  .opt.correct{border-color:var(--green);background:rgba(47,191,113,.14)}
+  .opt.correct .mark{border-color:var(--green);background:var(--green);color:#08210f}
+  .opt.wrong{border-color:var(--red);background:rgba(229,83,75,.13)}
+  .opt.wrong .mark{border-color:var(--red);background:var(--red);color:#2a0b09}
+  .opt.locked{cursor:default}
+  .explain{margin-top:16px;padding:14px 16px;border-left:4px solid var(--accent);background:rgba(56,189,248,.08);border-radius:8px;font-size:14.5px;display:none}
+  .explain.show{display:block;animation:fade .3s ease}
+  .explain b{color:var(--accent)}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .qnav{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:12px}
+  .score-live{color:var(--muted);font-size:13px}
+  .next{padding:12px 22px;border:none;border-radius:12px;background:var(--accent);color:#07202b;font-weight:700;font-size:15px;cursor:pointer;opacity:.4;pointer-events:none;transition:opacity .2s}
+  .next.ready{opacity:1;pointer-events:auto}
+  .next:hover{filter:brightness(1.05)}
+
+  /* Results */
+  .results{display:none;text-align:center}
+  .ring{width:170px;height:170px;margin:10px auto 6px;position:relative}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .pct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring .pct b{font-size:40px;line-height:1}
+  .ring .pct span{color:var(--muted);font-size:13px}
+  .verdict{font-size:20px;font-weight:700;margin:6px 0 2px}
+  .verdict.good{color:var(--green)} .verdict.mid{color:var(--amber)} .verdict.low{color:var(--red)}
+  .rsum{color:var(--muted);margin-bottom:14px}
+  .review{text-align:left;margin-top:18px}
+  .rev-item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+  .rev-item .rq{font-weight:600;margin-bottom:6px}
+  .rev-item .ra{font-size:14px}
+  .ra .you{color:var(--red)} .ra .ok{color:var(--green)}
+  .rev-item.ok-item{border-color:rgba(47,191,113,.4)}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:34px;line-height:1.7}
+  @media(max-width:520px){.qtext{font-size:16px}.card{padding:16px}.ring{width:140px;height:140px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="kicker">Тесты по биологии</div>
+    <h1>Д. Тейлор · Н. Грин · У. Стаут — «Биология», том 1</h1>
+    <p>Проверьте себя по 10 главам: от разнообразия жизни до экологии</p>
+  </header>
+
+  <!-- Chapter selection -->
+  <section id="menu">
+    <button class="cta" id="mixedBtn">🎲 Смешанный тест — 15 случайных вопросов из всех глав</button>
+    <div class="grid" id="grid"></div>
+    <footer>
+      Материалы основаны на учебнике «Biological Science 1&amp;2» (Cambridge University Press),
+      русское издание: БИНОМ. Лаборатория знаний, 2013.<br>
+      Тесты составлены по принципам активного припоминания (retrieval practice) — учитесь, реконструируя знания, а не узнавая их.
+    </footer>
+  </section>
+
+  <!-- Quiz -->
+  <section class="quiz" id="quiz">
+    <div class="qhead">
+      <div class="qtitle" id="qTitle"></div>
+      <div class="qcount" id="qCount"></div>
+    </div>
+    <div class="bar"><i id="qBar"></i></div>
+    <div class="card">
+      <p class="qtext" id="qText"></p>
+      <div class="opts" id="qOpts"></div>
+      <div class="explain" id="qExplain"></div>
+      <div class="qnav">
+        <div class="score-live" id="qScore"></div>
+        <button class="next" id="qNext">Далее →</button>
+      </div>
+    </div>
+    <button class="cta secondary" id="quitBtn" style="margin-top:16px">← Выйти к списку глав</button>
+  </section>
+
+  <!-- Results -->
+  <section class="results" id="results">
+    <div class="ring">
+      <svg width="170" height="170" viewBox="0 0 170 170">
+        <circle cx="85" cy="85" r="74" fill="none" stroke="var(--line)" stroke-width="14"></circle>
+        <circle id="ringFg" cx="85" cy="85" r="74" fill="none" stroke="var(--green)" stroke-width="14"
+                stroke-linecap="round" stroke-dasharray="465" stroke-dashoffset="465"></circle>
+      </svg>
+      <div class="pct"><b id="rPct">0%</b><span id="rFrac"></span></div>
+    </div>
+    <div class="verdict" id="rVerdict"></div>
+    <div class="rsum" id="rSum"></div>
+    <button class="cta" id="retryBtn">↻ Пройти заново</button>
+    <button class="cta secondary" id="homeBtn">← К списку глав</button>
+    <div class="review" id="review"></div>
+    <footer>Разбор ошибок помогает закрепить материал — перечитайте пояснения к тем вопросам, где ошиблись.</footer>
+  </section>
+</div>
+
+<script src="quiz-data.js"></script>
+<script>
+(function(){
+  const grid = document.getElementById('grid');
+  const menu = document.getElementById('menu');
+  const quizEl = document.getElementById('quiz');
+  const resultsEl = document.getElementById('results');
+  const LS = 'bio_taylor_best';
+  const bestScores = JSON.parse(localStorage.getItem(LS) || '{}');
+
+  let session = null; // {key,title,questions,idx,answers}
+
+  function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+  // Build chapter cards
+  function renderMenu(){
+    grid.innerHTML='';
+    Object.keys(QUIZ).forEach(key=>{
+      const ch = QUIZ[key];
+      const best = bestScores[key];
+      const card = document.createElement('div');
+      card.className='chapter';
+      card.innerHTML =
+        '<div class="ic">'+ch.icon+'</div>'+
+        '<h3>'+ch.title+'</h3>'+
+        '<div class="d">'+ch.desc+'</div>'+
+        '<div class="meta"><span>'+ch.questions.length+' вопросов</span>'+
+        (best!=null
+          ? '<span class="best">Лучший: '+best+'%</span>'
+          : '<span class="best none">Не пройдено</span>')+
+        '</div>';
+      card.onclick=()=>startQuiz(key);
+      grid.appendChild(card);
+    });
+  }
+
+  function startQuiz(key){
+    const ch = QUIZ[key];
+    // shuffle question order AND options each attempt
+    const qs = shuffle(ch.questions).map(q=>{
+      const opts = q.options.map((text,i)=>({text,isCorrect:i===q.correct}));
+      const shuffled = shuffle(opts);
+      return {q:q.q, why:q.why, opts:shuffled, correctIdx:shuffled.findIndex(o=>o.isCorrect)};
+    });
+    session = {key, title:ch.title, questions:qs, idx:0, answers:[]};
+    show('quiz'); renderQuestion();
+  }
+
+  function startMixed(){
+    let pool=[];
+    Object.values(QUIZ).forEach(ch=>ch.questions.forEach(q=>pool.push(q)));
+    const picked = shuffle(pool).slice(0,15).map(q=>{
+      const opts=q.options.map((text,i)=>({text,isCorrect:i===q.correct}));
+      const shuffled=shuffle(opts);
+      return {q:q.q, why:q.why, opts:shuffled, correctIdx:shuffled.findIndex(o=>o.isCorrect)};
+    });
+    session={key:'__mixed', title:'🎲 Смешанный тест', questions:picked, idx:0, answers:[]};
+    show('quiz'); renderQuestion();
+  }
+
+  function renderQuestion(){
+    const s=session, item=s.questions[s.idx];
+    document.getElementById('qTitle').textContent=s.title;
+    document.getElementById('qCount').textContent='Вопрос '+(s.idx+1)+' из '+s.questions.length;
+    document.getElementById('qBar').style.width=((s.idx)/s.questions.length*100)+'%';
+    document.getElementById('qText').textContent=item.q;
+    document.getElementById('qScore').textContent='Верно: '+s.answers.filter(a=>a).length+' из '+s.answers.length;
+
+    const optsEl=document.getElementById('qOpts'); optsEl.innerHTML='';
+    const letters=['А','Б','В','Г','Д'];
+    item.opts.forEach((o,i)=>{
+      const b=document.createElement('button');
+      b.className='opt';
+      b.innerHTML='<span class="mark">'+letters[i]+'</span><span>'+o.text+'</span>';
+      b.onclick=()=>choose(i);
+      optsEl.appendChild(b);
+    });
+    const ex=document.getElementById('qExplain'); ex.className='explain'; ex.innerHTML='';
+    const next=document.getElementById('qNext'); next.className='next';
+    next.textContent = (s.idx===s.questions.length-1)?'Показать результат →':'Далее →';
+  }
+
+  function choose(i){
+    const s=session, item=s.questions[s.idx];
+    const optsEl=document.getElementById('qOpts');
+    const buttons=[...optsEl.children];
+    if(buttons[0].classList.contains('locked')) return; // already answered
+    const correct = i===item.correctIdx;
+    buttons.forEach((b,bi)=>{
+      b.classList.add('locked');
+      if(bi===item.correctIdx) b.classList.add('correct');
+      if(bi===i && !correct) b.classList.add('wrong');
+    });
+    s.answers[s.idx]=correct;
+    const ex=document.getElementById('qExplain');
+    ex.innerHTML=(correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+item.why;
+    ex.className='explain show';
+    document.getElementById('qScore').textContent='Верно: '+s.answers.filter(a=>a).length+' из '+s.answers.length;
+    document.getElementById('qNext').className='next ready';
+  }
+
+  document.getElementById('qNext').onclick=()=>{
+    const s=session;
+    if(s.answers[s.idx]==null) return; // must answer
+    if(s.idx<s.questions.length-1){ s.idx++; renderQuestion(); }
+    else finish();
+  };
+
+  function finish(){
+    const s=session;
+    const correct=s.answers.filter(a=>a).length;
+    const total=s.questions.length;
+    const pct=Math.round(correct/total*100);
+    document.getElementById('qBar').style.width='100%';
+
+    // save best (not for mixed)
+    if(s.key!=='__mixed'){
+      if(bestScores[s.key]==null || pct>bestScores[s.key]){
+        bestScores[s.key]=pct;
+        localStorage.setItem(LS, JSON.stringify(bestScores));
+      }
+    }
+
+    document.getElementById('rPct').textContent=pct+'%';
+    document.getElementById('rFrac').textContent=correct+' из '+total;
+    const off=465-(465*pct/100);
+    const ring=document.getElementById('ringFg');
+    ring.style.stroke = pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
+    ring.style.transition='none'; ring.style.strokeDashoffset='465';
+    requestAnimationFrame(()=>{ring.style.transition='stroke-dashoffset 1s ease';ring.style.strokeDashoffset=off;});
+
+    const v=document.getElementById('rVerdict');
+    if(pct>=80){v.textContent='Отлично! Материал усвоен 🎉';v.className='verdict good';}
+    else if(pct>=50){v.textContent='Неплохо, но есть пробелы';v.className='verdict mid';}
+    else {v.textContent='Стоит повторить главу';v.className='verdict low';}
+    document.getElementById('rSum').textContent=s.title;
+
+    // review
+    const rev=document.getElementById('review'); rev.innerHTML='<h3 style="margin:24px 0 12px">Разбор</h3>';
+    s.questions.forEach((item,i)=>{
+      const ok=s.answers[i];
+      const el=document.createElement('div');
+      el.className='rev-item'+(ok?' ok-item':'');
+      el.innerHTML='<div class="rq">'+(ok?'✓ ':'✗ ')+item.q+'</div>'+
+        '<div class="ra"><span class="ok">Ответ: '+item.opts[item.correctIdx].text+'</span></div>'+
+        '<div class="ra" style="color:var(--muted);margin-top:6px">'+item.why+'</div>';
+      rev.appendChild(el);
+    });
+
+    show('results');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function show(view){
+    menu.style.display = view==='menu'?'block':'none';
+    quizEl.style.display = view==='quiz'?'block':'none';
+    resultsEl.style.display = view==='results'?'block':'none';
+    if(view==='menu') renderMenu();
+  }
+
+  document.getElementById('mixedBtn').onclick=startMixed;
+  document.getElementById('quitBtn').onclick=()=>show('menu');
+  document.getElementById('homeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');};
+  document.getElementById('retryBtn').onclick=()=>{
+    if(session.key==='__mixed') startMixed(); else startQuiz(session.key);
+    window.scrollTo({top:0});
+  };
+
+  renderMenu();
+})();
+</script>
+</body>
+</html>
