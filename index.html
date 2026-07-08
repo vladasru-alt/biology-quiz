@@ -140,6 +140,38 @@
   .rev-item .ra{font-size:14px}
   .ra .you{color:var(--red)} .ra .ok{color:var(--green)}
   .rev-item.ok-item{border-color:rgba(47,191,113,.4)}
+
+  /* User bar, login, dashboard */
+  .userbar{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .userbar .who{font-size:14px;color:var(--ink)}
+  .userbar .who b{color:var(--accent)}
+  .userbar button{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:5px 12px;font-size:12.5px;cursor:pointer;font-family:inherit}
+  .userbar button:hover{color:var(--ink);border-color:var(--accent)}
+  .login{display:none;max-width:440px;margin:34px auto 0}
+  .login .lc{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:18px;padding:28px 24px;box-shadow:var(--shadow);text-align:center}
+  .login h2{margin:0 0 6px;font-size:20px}
+  .login p{color:var(--muted);font-size:14px;margin:0 0 18px}
+  .login input{width:100%;background:var(--bg2);border:1.5px solid var(--line);color:var(--ink);border-radius:12px;padding:14px 16px;font-size:16px;font-family:inherit;text-align:center}
+  .login input:focus{outline:none;border-color:var(--accent)}
+  .dash{display:none}
+  .dash h2{font-size:22px;margin:6px 0 2px}
+  .dash .sub{color:var(--muted);font-size:14px;margin-bottom:18px}
+  .stat-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px}
+  .stat{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:14px;padding:16px 10px;text-align:center}
+  .stat b{display:block;font-size:26px;line-height:1.1}
+  .stat span{color:var(--muted);font-size:12px}
+  .dash h3{font-size:16px;margin:22px 0 12px}
+  .progress-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;font-size:13.5px}
+  .progress-row .pl{flex:0 0 44%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .progress-row .mini{flex:1;height:10px;background:var(--card);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
+  .progress-row .mini i{display:block;height:100%;border-radius:20px;transition:width .4s ease}
+  .progress-row .pv{flex:0 0 96px;text-align:right;color:var(--muted);font-size:12px}
+  .mistake{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--red);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .mistake .mch{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--amber);font-weight:700;margin-bottom:4px}
+  .mistake .mq{font-weight:600;font-size:14.5px;margin-bottom:5px}
+  .mistake .mans{font-size:13.5px;color:var(--green);line-height:1.6}
+  .mistake .mwhy{font-size:13px;color:var(--muted);margin-top:5px}
+  .empty{color:var(--muted);text-align:center;padding:22px;background:var(--card);border:1px dashed var(--line);border-radius:12px}
   footer{text-align:center;color:var(--muted);font-size:12px;margin-top:34px;line-height:1.7}
   @media(max-width:520px){.qtext{font-size:16px}.card{padding:16px}.ring{width:140px;height:140px}}
 </style>
@@ -150,7 +182,22 @@
     <div class="kicker">Тесты по биологии</div>
     <h1>Д. Тейлор · Н. Грин · У. Стаут — «Биология», том 1</h1>
     <p>Проверьте себя по 10 главам: от разнообразия жизни до экологии</p>
+    <div class="userbar" id="userbar" style="display:none">
+      <span class="who">👤 <b id="userName"></b></span>
+      <button id="dashBtn">📊 Личный кабинет</button>
+      <button id="switchBtn">Сменить пользователя</button>
+    </div>
   </header>
+
+  <!-- Login -->
+  <section class="login" id="login">
+    <div class="lc">
+      <h2>Вход в личный кабинет</h2>
+      <p>Введите имя — история ваших ответов будет сохраняться на этом устройстве, чтобы вы видели свои ошибки и могли их проработать.</p>
+      <input id="loginInput" type="text" placeholder="Ваше имя" maxlength="24" autocomplete="off">
+      <button class="cta" id="loginBtn" style="margin-top:16px">Войти →</button>
+    </div>
+  </section>
 
   <!-- Chapter selection -->
   <section id="menu">
@@ -202,17 +249,48 @@
     <div class="review" id="review"></div>
     <footer>Разбор ошибок помогает закрепить материал — перечитайте пояснения к тем вопросам, где ошиблись.</footer>
   </section>
+
+  <!-- Dashboard -->
+  <section class="dash" id="dash">
+    <h2>📊 Личный кабинет</h2>
+    <div class="sub" id="dashSub"></div>
+    <div class="stat-cards" id="statCards"></div>
+    <button class="cta" id="reviewBtn" style="margin-top:14px">🎯 Работа над ошибками</button>
+    <h3>Успеваемость по главам</h3>
+    <div id="chapterProgress"></div>
+    <h3>Мои ошибки — темы для проработки</h3>
+    <div id="mistakeList"></div>
+    <button class="cta secondary" id="dashHomeBtn" style="margin-top:18px">← К списку глав</button>
+    <button class="cta secondary" id="clearHistBtn" style="margin-top:8px;border-color:rgba(229,83,75,.4);color:#e5867f">Очистить историю ответов</button>
+  </section>
 </div>
 
 <script src="quiz-data.js"></script>
 <script>
 (function(){
   const $=id=>document.getElementById(id);
-  const grid=$('grid'), menu=$('menu'), quizEl=$('quiz'), resultsEl=$('results');
+  const grid=$('grid'), menu=$('menu'), quizEl=$('quiz'), resultsEl=$('results'),
+        login=$('login'), dash=$('dash'), userbar=$('userbar');
   const qOpts=$('qOpts'), qCheck=$('qCheck'), qExplain=$('qExplain'), qNext=$('qNext'),
         qScore=$('qScore'), qBadge=$('qBadge'), qHint=$('qHint'), qText=$('qText');
-  const LS='bio_taylor_best';
-  const bestScores=JSON.parse(localStorage.getItem(LS)||'{}');
+
+  // ---- User accounts (username only, stored per-device) ----
+  const CUR='bio_current_user';
+  let user=null;
+  const qLookup={};
+  Object.keys(QUIZ).forEach(ck=>QUIZ[ck].questions.forEach(raw=>{qLookup[raw.q]={ch:ck, raw};}));
+  function udKey(n){return 'bio_user_'+n;}
+  function loadUser(n){const r=localStorage.getItem(udKey(n));const d=r?JSON.parse(r):{};user={name:n, best:d.best||{}, history:d.history||[]};}
+  function saveUser(){if(!user)return;localStorage.setItem(udKey(user.name),JSON.stringify({best:user.best,history:user.history}));localStorage.setItem(CUR,user.name);}
+  function latestByQ(){const m={};user.history.forEach(h=>{if(!m[h.q]||h.t>=m[h.q].t)m[h.q]=h;});return m;}
+  function currentMistakes(){const m=latestByQ(),out=[];Object.values(m).forEach(h=>{if(!h.correct&&qLookup[h.q])out.push({q:h.q,ch:h.ch});});return out;}
+  function recordAnswer(correct){
+    if(!user)return;
+    const meta=qLookup[curItem.q];
+    user.history.push({t:Date.now(), q:curItem.q, ch:meta?meta.ch:session.key, correct:!!correct});
+    if(user.history.length>3000)user.history=user.history.slice(-3000);
+    saveUser();
+  }
   const LETTERS=['А','Б','В','Г','Д','Е'];
   const BADGE={single:'Один ответ',multi:'Несколько ответов',match:'Сопоставление',order:'Упорядочивание',truefalse:'Верно / Неверно'};
   const HINT={
@@ -253,7 +331,7 @@
   function renderMenu(){
     grid.innerHTML='';
     Object.keys(QUIZ).forEach(key=>{
-      const ch=QUIZ[key], best=bestScores[key];
+      const ch=QUIZ[key], best=user?user.best[key]:null;
       const card=document.createElement('div');
       card.className='chapter';
       card.innerHTML=
@@ -310,6 +388,7 @@
   // Common finalisation after any question is graded
   function commit(correct){
     session.answers[session.idx]=correct;
+    recordAnswer(correct);
     qExplain.innerHTML=(correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+esc(curItem.why);
     qExplain.className='explain show';
     qScore.textContent=liveScore();
@@ -453,12 +532,9 @@
     const pct=Math.round(correct/total*100);
     document.getElementById('qBar').style.width='100%';
 
-    // save best (not for mixed)
-    if(s.key!=='__mixed'){
-      if(bestScores[s.key]==null || pct>bestScores[s.key]){
-        bestScores[s.key]=pct;
-        localStorage.setItem(LS, JSON.stringify(bestScores));
-      }
+    // save best score per user (only for real chapters, not mixed/review)
+    if(user && s.key.slice(0,2)==='ch'){
+      if(user.best[s.key]==null || pct>user.best[s.key]){user.best[s.key]=pct;saveUser();}
     }
 
     document.getElementById('rPct').textContent=pct+'%';
@@ -492,21 +568,111 @@
   }
 
   function show(view){
+    login.style.display = view==='login'?'block':'none';
     menu.style.display = view==='menu'?'block':'none';
     quizEl.style.display = view==='quiz'?'block':'none';
     resultsEl.style.display = view==='results'?'block':'none';
+    dash.style.display = view==='dash'?'block':'none';
+    userbar.style.display = (user && view!=='login')?'flex':'none';
     if(view==='menu') renderMenu();
+    if(view==='dash') renderDash();
   }
 
-  document.getElementById('mixedBtn').onclick=startMixed;
-  document.getElementById('quitBtn').onclick=()=>show('menu');
-  document.getElementById('homeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');};
-  document.getElementById('retryBtn').onclick=()=>{
-    if(session.key==='__mixed') startMixed(); else startQuiz(session.key);
+  // ---- Work-on-mistakes quiz ----
+  function startReview(){
+    const wrong=currentMistakes();
+    if(!wrong.length){alert('Отлично — сейчас нет ошибок для проработки!');return;}
+    const qs=wrong.map(m=>qLookup[m.q]).filter(Boolean).map(x=>prep(x.raw));
+    session={key:'__review', title:'🎯 Работа над ошибками', questions:shuffle(qs), idx:0, answers:[]};
+    show('quiz'); renderQuestion(); window.scrollTo({top:0});
+  }
+
+  // ---- Dashboard (личный кабинет) ----
+  function renderDash(){
+    $('userName').textContent=user.name;
+    const total=user.history.length;
+    const correct=user.history.filter(h=>h.correct).length;
+    const acc=total?Math.round(correct/total*100):0;
+    const mistakes=currentMistakes();
+    $('dashSub').textContent='Пользователь: '+user.name+' · всего ответов: '+total;
+    const accCol=acc>=70?'var(--green)':acc>=40?'var(--amber)':'var(--red)';
+    $('statCards').innerHTML=
+      '<div class="stat"><b>'+total+'</b><span>ответов дано</span></div>'+
+      '<div class="stat"><b style="color:'+accCol+'">'+acc+'%</b><span>точность</span></div>'+
+      '<div class="stat"><b style="color:var(--red)">'+mistakes.length+'</b><span>ошибок для проработки</span></div>';
+    const rb=$('reviewBtn');
+    rb.textContent='🎯 Работа над ошибками'+(mistakes.length?' ('+mistakes.length+')':'');
+    rb.style.opacity=mistakes.length?'1':'.5';
+    rb.style.pointerEvents=mistakes.length?'auto':'none';
+
+    // per-chapter mastery (based on latest answer to each question)
+    const latest=latestByQ();
+    const cp=$('chapterProgress'); cp.innerHTML='';
+    Object.keys(QUIZ).forEach(ck=>{
+      const qs=QUIZ[ck].questions;
+      let attempted=0, mastered=0;
+      qs.forEach(raw=>{const h=latest[raw.q]; if(h){attempted++; if(h.correct)mastered++;}});
+      const masteryPct=attempted?Math.round(mastered/attempted*100):0;
+      const col=attempted===0?'var(--muted)':masteryPct>=70?'var(--green)':masteryPct>=40?'var(--amber)':'var(--red)';
+      const row=document.createElement('div'); row.className='progress-row';
+      row.innerHTML='<div class="pl">'+QUIZ[ck].icon+' '+esc(QUIZ[ck].title)+'</div>'+
+        '<div class="mini"><i style="width:'+(attempted?masteryPct:0)+'%;background:'+col+'"></i></div>'+
+        '<div class="pv">'+(attempted?masteryPct+'% ('+attempted+'/'+qs.length+')':'—')+'</div>';
+      cp.appendChild(row);
+    });
+
+    // mistakes grouped by chapter
+    const ml=$('mistakeList'); ml.innerHTML='';
+    if(!mistakes.length){ ml.innerHTML='<div class="empty">Пока нет ошибок — так держать! 🎉</div>'; }
+    else{
+      const byCh={};
+      mistakes.forEach(m=>{(byCh[m.ch]=byCh[m.ch]||[]).push(m);});
+      Object.keys(QUIZ).forEach(ck=>{
+        (byCh[ck]||[]).forEach(m=>{
+          const meta=qLookup[m.q]; if(!meta)return;
+          const item=prep(meta.raw);
+          const el=document.createElement('div'); el.className='mistake';
+          el.innerHTML='<div class="mch">'+esc(QUIZ[ck].title)+'</div>'+
+            '<div class="mq">'+esc(meta.raw.q)+'</div>'+
+            '<div class="mans">'+correctAnswerHTML(item)+'</div>'+
+            '<div class="mwhy">'+esc(meta.raw.why)+'</div>';
+          ml.appendChild(el);
+        });
+      });
+    }
+  }
+
+  // ---- Wiring ----
+  $('mixedBtn').onclick=startMixed;
+  $('quitBtn').onclick=()=>show('menu');
+  $('homeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');};
+  $('retryBtn').onclick=()=>{
+    if(session.key==='__mixed') startMixed();
+    else if(session.key==='__review') startReview();
+    else startQuiz(session.key);
     window.scrollTo({top:0});
   };
+  $('dashBtn').onclick=()=>{window.scrollTo({top:0});show('dash');};
+  $('dashHomeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');};
+  $('reviewBtn').onclick=startReview;
+  $('clearHistBtn').onclick=()=>{
+    if(confirm('Удалить всю историю ответов и результаты для «'+user.name+'»?')){
+      user.history=[]; user.best={}; saveUser(); renderDash();
+    }
+  };
+  function doLogin(){
+    const n=$('loginInput').value.trim();
+    if(!n) return;
+    loadUser(n); saveUser(); $('userName').textContent=n; show('menu');
+  }
+  $('loginBtn').onclick=doLogin;
+  $('loginInput').onkeydown=e=>{if(e.key==='Enter')doLogin();};
+  $('switchBtn').onclick=()=>{localStorage.removeItem(CUR);user=null;$('loginInput').value='';show('login');setTimeout(()=>$('loginInput').focus(),50);};
 
-  renderMenu();
+  // ---- Init ----
+  const savedName=localStorage.getItem(CUR);
+  if(savedName){ loadUser(savedName); $('userName').textContent=savedName; show('menu'); }
+  else { show('login'); setTimeout(()=>$('loginInput').focus(),100); }
 })();
 </script>
 </body>
