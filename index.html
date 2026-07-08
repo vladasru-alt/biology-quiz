@@ -172,6 +172,8 @@
   .mistake .mans{font-size:13.5px;color:var(--green);line-height:1.6}
   .mistake .mwhy{font-size:13px;color:var(--muted);margin-top:5px}
   .empty{color:var(--muted);text-align:center;padding:22px;background:var(--card);border:1px dashed var(--line);border-radius:12px}
+  .export-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+  .export-row .cta{flex:1 1 200px;width:auto;margin:0}
   footer{text-align:center;color:var(--muted);font-size:12px;margin-top:34px;line-height:1.7}
   @media(max-width:520px){.qtext{font-size:16px}.card{padding:16px}.ring{width:140px;height:140px}}
 </style>
@@ -260,6 +262,13 @@
     <div id="chapterProgress"></div>
     <h3>Мои ошибки — темы для проработки</h3>
     <div id="mistakeList"></div>
+    <h3>Экспорт для повторения</h3>
+    <p class="sub" style="margin-top:-4px">Сохраните свои ошибки или скопируйте готовый запрос, чтобы сгенерировать новый тест по слабым темам.</p>
+    <div class="export-row">
+      <button class="cta" id="promptBtn">📋 Запрос для ИИ (по ошибкам)</button>
+      <button class="cta secondary" id="expJsonBtn">⬇ Ошибки (JSON)</button>
+      <button class="cta secondary" id="expCsvBtn">⬇ История (CSV)</button>
+    </div>
     <button class="cta secondary" id="dashHomeBtn" style="margin-top:18px">← К списку глав</button>
     <button class="cta secondary" id="clearHistBtn" style="margin-top:8px;border-color:rgba(229,83,75,.4);color:#e5867f">Очистить историю ответов</button>
   </section>
@@ -642,6 +651,88 @@
     }
   }
 
+  // ---- Export of answers & mistakes ----
+  function correctAnswerTextRaw(q){
+    const t=q.type||'single';
+    if(t==='single') return q.options[q.correct];
+    if(t==='truefalse') return q.answer?'Верно':'Неверно';
+    if(t==='multi') return q.correct.map(i=>q.options[i]).join('; ');
+    if(t==='match') return q.left.map((l,i)=>l+' → '+q.right[i]).join('; ');
+    if(t==='order') return q.items.map((x,i)=>(i+1)+'. '+x).join('; ');
+    return '';
+  }
+  function safe(s){return String(s).replace(/[^0-9A-Za-zА-Яа-яЁё_-]+/g,'_');}
+  function dstamp(){return new Date().toISOString().slice(0,10);}
+  function download(filename,text,mime){
+    const blob=new Blob([text],{type:mime||'text/plain;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},100);
+  }
+  function copyText(text,okMsg){
+    const done=()=>alert(okMsg||'Скопировано в буфер обмена');
+    const fallback=()=>{
+      const ta=document.createElement('textarea'); ta.value=text;
+      ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select();
+      let ok=false; try{ok=document.execCommand('copy');}catch(e){}
+      ta.remove();
+      if(ok) done(); else download('zapros-dlya-ii-'+dstamp()+'.txt', text);
+    };
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else fallback();
+  }
+  function chapterStats(){
+    const latest=latestByQ();
+    return Object.keys(QUIZ).map(ck=>{
+      const qs=QUIZ[ck].questions; let a=0,m=0;
+      qs.forEach(r=>{const h=latest[r.q]; if(h){a++; if(h.correct)m++;}});
+      return {chapter:ck, title:QUIZ[ck].title, attempted:a, total:qs.length, mastery:a?Math.round(m/a*100):null};
+    });
+  }
+  function gatherMistakes(){
+    return currentMistakes().map(m=>{
+      const raw=qLookup[m.q].raw;
+      return {chapter:m.ch, chapterTitle:QUIZ[m.ch]?QUIZ[m.ch].title:m.ch,
+        type:raw.type||'single', question:raw.q,
+        correctAnswer:correctAnswerTextRaw(raw), explanation:raw.why, source:raw};
+    });
+  }
+  function exportMistakesJSON(){
+    const data={ user:user.name, exportedAt:new Date().toISOString(),
+      totalAnswers:user.history.length, mistakesCount:currentMistakes().length,
+      chapters:chapterStats(), mistakes:gatherMistakes() };
+    download('bio-oshibki-'+safe(user.name)+'-'+dstamp()+'.json', JSON.stringify(data,null,2), 'application/json;charset=utf-8');
+  }
+  function exportHistoryCSV(){
+    const rows=[['datetime','chapter','result','question']];
+    user.history.forEach(h=>{
+      rows.push([new Date(h.t).toISOString(), QUIZ[h.ch]?QUIZ[h.ch].title:h.ch, h.correct?'верно':'ошибка', h.q]);
+    });
+    const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+    download('bio-istoriya-'+safe(user.name)+'-'+dstamp()+'.csv', '﻿'+csv, 'text/csv;charset=utf-8');
+  }
+  function buildErrorPrompt(){
+    const mistakes=gatherMistakes();
+    const weak=chapterStats().filter(c=>c.attempted>0 && c.mastery<70);
+    let p='Ты — преподаватель биологии. Составь для меня новый тренировочный тест по темам, в которых я ошибаюсь.\n';
+    p+='Учебник: Д. Тейлор, Н. Грин, У. Стаут «Биология», том 1.\n\n';
+    if(weak.length){ p+='Мои слабые главы (точность ниже 70%):\n'+weak.map(w=>'— '+w.title+' — '+w.mastery+'%').join('\n')+'\n\n'; }
+    if(mistakes.length){
+      p+='Вопросы, в которых я ошибался, с правильными ответами (используй их как ориентир по темам, но НЕ повторяй дословно):\n';
+      mistakes.forEach((m,i)=>{ p+=(i+1)+'. ['+m.chapterTitle+'] '+m.question+'\n   Правильный ответ: '+m.correctAnswer+'\n'; });
+      p+='\n';
+    } else {
+      p+='Сейчас незакрытых ошибок нет — составь тест по главам с самой низкой точностью.\n\n';
+    }
+    p+='Сгенерируй 15 НОВЫХ вопросов по этим темам, разных форматов: один ответ, несколько верных, сопоставление, упорядочивание, верно/неверно. К каждому дай правильный ответ и краткое пояснение.';
+    return p;
+  }
+  function copyErrorPrompt(){
+    copyText(buildErrorPrompt(), 'Запрос скопирован! Вставьте его в ChatGPT или Claude, чтобы получить новый тест по вашим ошибкам.');
+  }
+
   // ---- Wiring ----
   $('mixedBtn').onclick=startMixed;
   $('quitBtn').onclick=()=>show('menu');
@@ -655,6 +746,9 @@
   $('dashBtn').onclick=()=>{window.scrollTo({top:0});show('dash');};
   $('dashHomeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');};
   $('reviewBtn').onclick=startReview;
+  $('promptBtn').onclick=copyErrorPrompt;
+  $('expJsonBtn').onclick=exportMistakesJSON;
+  $('expCsvBtn').onclick=exportHistoryCSV;
   $('clearHistBtn').onclick=()=>{
     if(confirm('Удалить всю историю ответов и результаты для «'+user.name+'»?')){
       user.history=[]; user.best={}; saveUser(); renderDash();
