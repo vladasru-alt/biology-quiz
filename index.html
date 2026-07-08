@@ -82,6 +82,48 @@
   .next.ready{opacity:1;pointer-events:auto}
   .next:hover{filter:brightness(1.05)}
 
+  /* Question type badge + hint */
+  .qbadge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--accent);background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.3);
+    padding:3px 9px;border-radius:20px;margin-bottom:12px}
+  .qhint{color:var(--muted);font-size:13px;margin:-4px 0 14px}
+  .qhint:empty{display:none}
+  /* Multi-select checkboxes (reuse .opt) */
+  .opt .box{flex:0 0 22px;height:22px;border-radius:6px;border:2px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;margin-top:1px}
+  .opt.sel{border-color:var(--accent);background:#1a2735}
+  .opt.sel .box{border-color:var(--accent);background:var(--accent);color:#07202b}
+  .opt.correct .box{border-color:var(--green);background:var(--green);color:#08210f}
+  .opt.wrong .box{border-color:var(--red);background:var(--red);color:#2a0b09}
+  .opt.miss{border-color:var(--green);border-style:dashed}
+  .opt.miss .box{border-color:var(--green);border-style:dashed}
+  /* Matching rows */
+  .matchrow{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+  .matchrow .ml{flex:0 0 42%;background:var(--bg2);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14.5px;font-weight:600}
+  .matchrow .ml b{color:var(--accent);margin-right:4px}
+  .matchrow .arr{color:var(--muted);flex:0 0 12px;text-align:center}
+  .matchrow .mcell{flex:1}
+  .matchrow select{width:100%;background:var(--bg2);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;cursor:pointer}
+  .matchrow.ok .ml{border-color:var(--green)} .matchrow.ok select{border-color:var(--green);background:rgba(47,191,113,.12)}
+  .matchrow.bad .ml{border-color:var(--red)} .matchrow.bad select{border-color:var(--red);background:rgba(229,83,75,.12)}
+  .matchrow .fix{display:block;font-size:12.5px;color:var(--green);margin-top:5px}
+  /* Ordering list */
+  .orderitem{display:flex;gap:10px;align-items:center;background:var(--bg2);border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:8px}
+  .orderitem .num{flex:0 0 24px;height:24px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted)}
+  .orderitem .otext{flex:1;font-size:14.5px}
+  .orderitem .ctrl{display:flex;flex-direction:column;gap:3px}
+  .orderitem .ctrl button{width:30px;height:20px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;cursor:pointer;font-size:10px;line-height:1;padding:0}
+  .orderitem .ctrl button:hover:not(:disabled){border-color:var(--accent)}
+  .orderitem .ctrl button:disabled{opacity:.3;cursor:default}
+  .orderitem.ok{border-color:var(--green);background:rgba(47,191,113,.1)} .orderitem.ok .num{border-color:var(--green);color:var(--green);background:var(--green);color:#08210f}
+  .orderitem.bad{border-color:var(--red);background:rgba(229,83,75,.1)}
+  /* Check button */
+  .checkbtn{margin-top:16px;padding:12px 24px;border:none;border-radius:12px;background:var(--accent);color:#07202b;font-weight:700;font-size:15px;cursor:pointer;transition:opacity .2s}
+  .checkbtn:hover:not(:disabled){filter:brightness(1.05)}
+  .checkbtn:disabled{opacity:.4;cursor:default}
+  /* Review extras */
+  .rev-item .rmap{font-size:13.5px;margin-top:5px;line-height:1.7}
+  .rev-item .rmap .ok{color:var(--green)}
+
   /* Results */
   .results{display:none;text-align:center}
   .ring{width:170px;height:170px;margin:10px auto 6px;position:relative}
@@ -129,8 +171,11 @@
     </div>
     <div class="bar"><i id="qBar"></i></div>
     <div class="card">
+      <span class="qbadge" id="qBadge"></span>
       <p class="qtext" id="qText"></p>
+      <div class="qhint" id="qHint"></div>
       <div class="opts" id="qOpts"></div>
+      <button class="checkbtn" id="qCheck" style="display:none">Проверить ответ</button>
       <div class="explain" id="qExplain"></div>
       <div class="qnav">
         <div class="score-live" id="qScore"></div>
@@ -162,33 +207,61 @@
 <script src="quiz-data.js"></script>
 <script>
 (function(){
-  const grid = document.getElementById('grid');
-  const menu = document.getElementById('menu');
-  const quizEl = document.getElementById('quiz');
-  const resultsEl = document.getElementById('results');
-  const LS = 'bio_taylor_best';
-  const bestScores = JSON.parse(localStorage.getItem(LS) || '{}');
+  const $=id=>document.getElementById(id);
+  const grid=$('grid'), menu=$('menu'), quizEl=$('quiz'), resultsEl=$('results');
+  const qOpts=$('qOpts'), qCheck=$('qCheck'), qExplain=$('qExplain'), qNext=$('qNext'),
+        qScore=$('qScore'), qBadge=$('qBadge'), qHint=$('qHint'), qText=$('qText');
+  const LS='bio_taylor_best';
+  const bestScores=JSON.parse(localStorage.getItem(LS)||'{}');
+  const LETTERS=['А','Б','В','Г','Д','Е'];
+  const BADGE={single:'Один ответ',multi:'Несколько ответов',match:'Сопоставление',order:'Упорядочивание',truefalse:'Верно / Неверно'};
+  const HINT={
+    multi:'Выберите все верные варианты, затем нажмите «Проверить».',
+    match:'Для каждого пункта слева выберите подходящий вариант справа.',
+    order:'Расставьте по порядку кнопками ▲ ▼, затем нажмите «Проверить».'
+  };
 
-  let session = null; // {key,title,questions,idx,answers}
+  let session=null, curItem=null;
 
   function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+  function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+  // Normalise a raw question into a runtime item (with shuffling + embedded correctness)
+  function prep(q){
+    const type=q.type||'single';
+    const it={type, q:q.q, why:q.why};
+    if(type==='single'){
+      it.opts=shuffle(q.options.map((t,i)=>({text:t,ok:i===q.correct})));
+    } else if(type==='multi'){
+      it.opts=shuffle(q.options.map((t,i)=>({text:t,ok:q.correct.includes(i)})));
+    } else if(type==='truefalse'){
+      it.opts=[{text:'Верно',ok:q.answer===true},{text:'Неверно',ok:q.answer===false}];
+    } else if(type==='match'){
+      it.left=q.left.slice();
+      it.solution=q.left.map((_,i)=>q.right[i]); // correct right text for each left index
+      it.right=shuffle(q.right.slice());
+    } else if(type==='order'){
+      it.solution=q.items.slice();
+      let d=shuffle(q.items.slice()), n=0;
+      while(d.join('|')===it.solution.join('|') && n++<12) d=shuffle(d);
+      it.display=d;
+    }
+    return it;
+  }
 
   // Build chapter cards
   function renderMenu(){
     grid.innerHTML='';
     Object.keys(QUIZ).forEach(key=>{
-      const ch = QUIZ[key];
-      const best = bestScores[key];
-      const card = document.createElement('div');
+      const ch=QUIZ[key], best=bestScores[key];
+      const card=document.createElement('div');
       card.className='chapter';
-      card.innerHTML =
+      card.innerHTML=
         '<div class="ic">'+ch.icon+'</div>'+
-        '<h3>'+ch.title+'</h3>'+
-        '<div class="d">'+ch.desc+'</div>'+
+        '<h3>'+esc(ch.title)+'</h3>'+
+        '<div class="d">'+esc(ch.desc)+'</div>'+
         '<div class="meta"><span>'+ch.questions.length+' вопросов</span>'+
-        (best!=null
-          ? '<span class="best">Лучший: '+best+'%</span>'
-          : '<span class="best none">Не пройдено</span>')+
+        (best!=null?'<span class="best">Лучший: '+best+'%</span>':'<span class="best none">Не пройдено</span>')+
         '</div>';
       card.onclick=()=>startQuiz(key);
       grid.appendChild(card);
@@ -196,76 +269,182 @@
   }
 
   function startQuiz(key){
-    const ch = QUIZ[key];
-    // shuffle question order AND options each attempt
-    const qs = shuffle(ch.questions).map(q=>{
-      const opts = q.options.map((text,i)=>({text,isCorrect:i===q.correct}));
-      const shuffled = shuffle(opts);
-      return {q:q.q, why:q.why, opts:shuffled, correctIdx:shuffled.findIndex(o=>o.isCorrect)};
-    });
-    session = {key, title:ch.title, questions:qs, idx:0, answers:[]};
+    const ch=QUIZ[key];
+    session={key, title:ch.title, questions:shuffle(ch.questions).map(prep), idx:0, answers:[]};
     show('quiz'); renderQuestion();
   }
-
   function startMixed(){
     let pool=[];
     Object.values(QUIZ).forEach(ch=>ch.questions.forEach(q=>pool.push(q)));
-    const picked = shuffle(pool).slice(0,15).map(q=>{
-      const opts=q.options.map((text,i)=>({text,isCorrect:i===q.correct}));
-      const shuffled=shuffle(opts);
-      return {q:q.q, why:q.why, opts:shuffled, correctIdx:shuffled.findIndex(o=>o.isCorrect)};
-    });
-    session={key:'__mixed', title:'🎲 Смешанный тест', questions:picked, idx:0, answers:[]};
+    session={key:'__mixed', title:'🎲 Смешанный тест', questions:shuffle(pool).slice(0,15).map(prep), idx:0, answers:[]};
     show('quiz'); renderQuestion();
   }
 
+  // ---- Rendering dispatch ----
   function renderQuestion(){
-    const s=session, item=s.questions[s.idx];
-    document.getElementById('qTitle').textContent=s.title;
-    document.getElementById('qCount').textContent='Вопрос '+(s.idx+1)+' из '+s.questions.length;
-    document.getElementById('qBar').style.width=((s.idx)/s.questions.length*100)+'%';
-    document.getElementById('qText').textContent=item.q;
-    document.getElementById('qScore').textContent='Верно: '+s.answers.filter(a=>a).length+' из '+s.answers.length;
+    const s=session; curItem=s.questions[s.idx];
+    $('qTitle').textContent=s.title;
+    $('qCount').textContent='Вопрос '+(s.idx+1)+' из '+s.questions.length;
+    $('qBar').style.width=(s.idx/s.questions.length*100)+'%';
+    qText.textContent=curItem.q;
+    qBadge.textContent=BADGE[curItem.type]||'Вопрос';
+    qHint.textContent=HINT[curItem.type]||'';
+    qScore.textContent=liveScore();
+    qOpts.innerHTML='';
+    qExplain.className='explain'; qExplain.innerHTML='';
+    hideCheck();
+    qNext.className='next';
+    qNext.textContent=(s.idx===s.questions.length-1)?'Показать результат →':'Далее →';
 
-    const optsEl=document.getElementById('qOpts'); optsEl.innerHTML='';
-    const letters=['А','Б','В','Г','Д'];
-    item.opts.forEach((o,i)=>{
+    if(curItem.type==='single'||curItem.type==='truefalse') renderChoice(false);
+    else if(curItem.type==='multi') renderChoice(true);
+    else if(curItem.type==='match') renderMatch();
+    else if(curItem.type==='order') renderOrder();
+  }
+
+  function liveScore(){return 'Верно: '+session.answers.filter(a=>a).length+' из '+session.answers.length;}
+
+  function showCheck(handler,enabled){qCheck.style.display='inline-block';qCheck.disabled=!enabled;qCheck.onclick=handler;}
+  function hideCheck(){qCheck.style.display='none';qCheck.onclick=null;}
+
+  // Common finalisation after any question is graded
+  function commit(correct){
+    session.answers[session.idx]=correct;
+    qExplain.innerHTML=(correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+esc(curItem.why);
+    qExplain.className='explain show';
+    qScore.textContent=liveScore();
+    qNext.className='next ready';
+  }
+
+  // ---- Single / Multi / True-False ----
+  function renderChoice(isMulti){
+    curItem.opts.forEach((o,i)=>{
       const b=document.createElement('button');
       b.className='opt';
-      b.innerHTML='<span class="mark">'+letters[i]+'</span><span>'+o.text+'</span>';
-      b.onclick=()=>choose(i);
-      optsEl.appendChild(b);
+      const mark=isMulti?'<span class="box"></span>':'<span class="mark">'+LETTERS[i]+'</span>';
+      b.innerHTML=mark+'<span>'+esc(o.text)+'</span>';
+      if(isMulti){
+        b.onclick=()=>{b.classList.toggle('sel');b.querySelector('.box').textContent=b.classList.contains('sel')?'✓':'';
+          qCheck.disabled=![...qOpts.children].some(x=>x.classList.contains('sel'));};
+      } else {
+        b.onclick=()=>gradeSingle(i);
+      }
+      qOpts.appendChild(b);
     });
-    const ex=document.getElementById('qExplain'); ex.className='explain'; ex.innerHTML='';
-    const next=document.getElementById('qNext'); next.className='next';
-    next.textContent = (s.idx===s.questions.length-1)?'Показать результат →':'Далее →';
+    if(isMulti) showCheck(gradeMulti,false);
+  }
+  function gradeSingle(i){
+    const btns=[...qOpts.children];
+    if(btns[0].classList.contains('locked'))return;
+    const correct=curItem.opts[i].ok;
+    btns.forEach((b,bi)=>{b.classList.add('locked');b.onclick=null;
+      if(curItem.opts[bi].ok)b.classList.add('correct');
+      else if(bi===i)b.classList.add('wrong');});
+    commit(correct);
+  }
+  function gradeMulti(){
+    let all=true;
+    [...qOpts.children].forEach((b,bi)=>{
+      const sel=b.classList.contains('sel'), ok=curItem.opts[bi].ok;
+      b.classList.add('locked');b.classList.remove('sel');b.onclick=null;
+      const box=b.querySelector('.box');
+      if(ok&&sel){b.classList.add('correct');box.textContent='✓';}
+      else if(!ok&&sel){b.classList.add('wrong');box.textContent='✗';}
+      else if(ok&&!sel){b.classList.add('miss');box.textContent='✓';}
+      if(ok!==sel)all=false;
+    });
+    hideCheck(); commit(all);
   }
 
-  function choose(i){
-    const s=session, item=s.questions[s.idx];
-    const optsEl=document.getElementById('qOpts');
-    const buttons=[...optsEl.children];
-    if(buttons[0].classList.contains('locked')) return; // already answered
-    const correct = i===item.correctIdx;
-    buttons.forEach((b,bi)=>{
-      b.classList.add('locked');
-      if(bi===item.correctIdx) b.classList.add('correct');
-      if(bi===i && !correct) b.classList.add('wrong');
+  // ---- Matching ----
+  function renderMatch(){
+    curItem.left.forEach((l,i)=>{
+      const row=document.createElement('div');
+      row.className='matchrow';
+      let opts='<option value="">— выберите —</option>';
+      curItem.right.forEach(r=>{opts+='<option value="'+esc(r)+'">'+esc(r)+'</option>';});
+      row.innerHTML='<div class="ml"><b>'+LETTERS[i]+'.</b>'+esc(l)+'</div>'+
+        '<div class="arr">→</div>'+
+        '<div class="mcell"><select>'+opts+'</select></div>';
+      row.querySelector('select').onchange=()=>{
+        qCheck.disabled=[...qOpts.querySelectorAll('select')].some(s=>!s.value);
+      };
+      qOpts.appendChild(row);
     });
-    s.answers[s.idx]=correct;
-    const ex=document.getElementById('qExplain');
-    ex.innerHTML=(correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+item.why;
-    ex.className='explain show';
-    document.getElementById('qScore').textContent='Верно: '+s.answers.filter(a=>a).length+' из '+s.answers.length;
-    document.getElementById('qNext').className='next ready';
+    showCheck(gradeMatch,false);
+  }
+  function gradeMatch(){
+    let all=true;
+    [...qOpts.children].forEach((row,i)=>{
+      const sel=row.querySelector('select'); sel.disabled=true;
+      const correct=curItem.solution[i];
+      if(sel.value===correct){row.classList.add('ok');}
+      else{row.classList.add('bad');all=false;
+        const fix=document.createElement('span');fix.className='fix';fix.textContent='✓ '+correct;
+        row.querySelector('.mcell').appendChild(fix);}
+    });
+    hideCheck(); commit(all);
   }
 
-  document.getElementById('qNext').onclick=()=>{
+  // ---- Ordering ----
+  function renderOrder(){
+    session.orderState=curItem.display.slice();
+    drawOrder(false);
+    showCheck(gradeOrder,true);
+  }
+  function drawOrder(locked){
+    qOpts.innerHTML='';
+    const a=session.orderState;
+    a.forEach((text,i)=>{
+      const row=document.createElement('div');row.className='orderitem';
+      row.innerHTML='<div class="ctrl"><button class="up" '+(i===0?'disabled':'')+'>▲</button>'+
+        '<button class="dn" '+(i===a.length-1?'disabled':'')+'>▼</button></div>'+
+        '<div class="num">'+(i+1)+'</div><div class="otext">'+esc(text)+'</div>';
+      if(!locked){
+        row.querySelector('.up').onclick=()=>moveItem(i,-1);
+        row.querySelector('.dn').onclick=()=>moveItem(i,1);
+      } else { row.querySelectorAll('button').forEach(b=>b.disabled=true); }
+      qOpts.appendChild(row);
+    });
+  }
+  function moveItem(i,dir){
+    const a=session.orderState, j=i+dir;
+    if(j<0||j>=a.length)return;
+    [a[i],a[j]]=[a[j],a[i]]; drawOrder(false);
+  }
+  function gradeOrder(){
+    const a=session.orderState, sol=curItem.solution;
+    drawOrder(true);
+    let all=true;
+    [...qOpts.children].forEach((row,i)=>{
+      if(a[i]===sol[i])row.classList.add('ok'); else {row.classList.add('bad');all=false;}
+    });
+    hideCheck(); commit(all);
+  }
+
+  qNext.onclick=()=>{
     const s=session;
-    if(s.answers[s.idx]==null) return; // must answer
-    if(s.idx<s.questions.length-1){ s.idx++; renderQuestion(); }
+    if(s.answers[s.idx]==null) return; // must answer first
+    if(s.idx<s.questions.length-1){s.idx++;renderQuestion();}
     else finish();
   };
+
+  // Correct-answer summary for the review screen (per question type)
+  function correctAnswerHTML(item){
+    if(item.type==='single'||item.type==='truefalse'){
+      return '<span class="ok">Ответ: '+esc(item.opts.find(o=>o.ok).text)+'</span>';
+    }
+    if(item.type==='multi'){
+      return '<span class="ok">Верные: '+item.opts.filter(o=>o.ok).map(o=>esc(o.text)).join('; ')+'</span>';
+    }
+    if(item.type==='match'){
+      return '<span class="ok">'+item.left.map((l,i)=>esc(l)+' → '+esc(item.solution[i])).join('<br>')+'</span>';
+    }
+    if(item.type==='order'){
+      return '<span class="ok">'+item.solution.map((t,i)=>(i+1)+'. '+esc(t)).join('<br>')+'</span>';
+    }
+    return '';
+  }
 
   function finish(){
     const s=session;
@@ -302,9 +481,9 @@
       const ok=s.answers[i];
       const el=document.createElement('div');
       el.className='rev-item'+(ok?' ok-item':'');
-      el.innerHTML='<div class="rq">'+(ok?'✓ ':'✗ ')+item.q+'</div>'+
-        '<div class="ra"><span class="ok">Ответ: '+item.opts[item.correctIdx].text+'</span></div>'+
-        '<div class="ra" style="color:var(--muted);margin-top:6px">'+item.why+'</div>';
+      el.innerHTML='<div class="rq">'+(ok?'✓ ':'✗ ')+esc(item.q)+'</div>'+
+        '<div class="rmap">'+correctAnswerHTML(item)+'</div>'+
+        '<div class="ra" style="color:var(--muted);margin-top:6px">'+esc(item.why)+'</div>';
       rev.appendChild(el);
     });
 
