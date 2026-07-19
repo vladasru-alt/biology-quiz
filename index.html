@@ -116,6 +116,12 @@
   .orderitem .ctrl button:disabled{opacity:.3;cursor:default}
   .orderitem.ok{border-color:var(--green);background:rgba(47,191,113,.1)} .orderitem.ok .num{border-color:var(--green);color:var(--green);background:var(--green);color:#08210f}
   .orderitem.bad{border-color:var(--red);background:rgba(229,83,75,.1)}
+  /* Two-tier */
+  .tier{display:flex;flex-direction:column;gap:10px}
+  .tier2head{margin:18px 0 10px;font-weight:700;font-size:15px;color:var(--accent);
+    border-top:1px dashed var(--line);padding-top:14px}
+  .opt.sel .mark{border-color:var(--accent);background:var(--accent);color:#07202b}
+  .explain i{color:var(--amber);font-style:normal}
   /* Check button */
   .checkbtn{margin-top:16px;padding:12px 24px;border:none;border-radius:12px;background:var(--accent);color:#07202b;font-weight:700;font-size:15px;cursor:pointer;transition:opacity .2s}
   .checkbtn:hover:not(:disabled){filter:brightness(1.05)}
@@ -301,11 +307,12 @@
     saveUser();
   }
   const LETTERS=['А','Б','В','Г','Д','Е'];
-  const BADGE={single:'Один ответ',multi:'Несколько ответов',match:'Сопоставление',order:'Упорядочивание',truefalse:'Верно / Неверно'};
+  const BADGE={single:'Один ответ',multi:'Несколько ответов',match:'Сопоставление',order:'Упорядочивание',truefalse:'Верно / Неверно',twotier:'Ответ + обоснование'};
   const HINT={
     multi:'Выберите все верные варианты, затем нажмите «Проверить».',
     match:'Для каждого пункта слева выберите подходящий вариант справа.',
-    order:'Расставьте по порядку кнопками ▲ ▼, затем нажмите «Проверить».'
+    order:'Расставьте по порядку кнопками ▲ ▼, затем нажмите «Проверить».',
+    twotier:'Сначала выберите ответ, затем объясните, почему вы так решили. Засчитывается только при верных обоих шагах.'
   };
 
   let session=null, curItem=null;
@@ -332,6 +339,10 @@
       let d=shuffle(q.items.slice()), n=0;
       while(d.join('|')===it.solution.join('|') && n++<12) d=shuffle(d);
       it.display=d;
+    } else if(type==='twotier'){
+      it.opts=shuffle(q.options.map((t,i)=>({text:t,ok:i===q.correct})));
+      it.reasons=shuffle(q.reasons.map((t,i)=>({text:t,ok:i===q.reasonCorrect})));
+      it.reasonQ=q.reasonQ||'Почему вы так решили?';
     }
     return it;
   }
@@ -387,6 +398,53 @@
     else if(curItem.type==='multi') renderChoice(true);
     else if(curItem.type==='match') renderMatch();
     else if(curItem.type==='order') renderOrder();
+    else if(curItem.type==='twotier') renderTwoTier();
+  }
+
+  // ---- Two-tier: answer, then justification (both must be right) ----
+  function renderTwoTier(){
+    const t1=document.createElement('div'); t1.className='tier';
+    curItem.opts.forEach((o,i)=>{
+      const b=document.createElement('button'); b.className='opt';
+      b.innerHTML='<span class="mark">'+LETTERS[i]+'</span><span>'+esc(o.text)+'</span>';
+      b.onclick=()=>pickTier1(i);
+      t1.appendChild(b);
+    });
+    qOpts.appendChild(t1);
+  }
+  function pickTier1(i){
+    const t1=qOpts.querySelector('.tier');
+    if(t1.dataset.done) return;
+    t1.dataset.done='1'; t1.dataset.pick=i;
+    [...t1.children].forEach((b,bi)=>{b.classList.add('locked');b.onclick=null;
+      if(bi===i)b.classList.add('sel');});
+    const h=document.createElement('div'); h.className='tier2head';
+    h.textContent='Шаг 2. '+curItem.reasonQ;
+    const t2=document.createElement('div'); t2.className='tier tier2';
+    curItem.reasons.forEach((r,j)=>{
+      const b=document.createElement('button'); b.className='opt';
+      b.innerHTML='<span class="mark">'+(j+1)+'</span><span>'+esc(r.text)+'</span>';
+      b.onclick=()=>gradeTwoTier(i,j);
+      t2.appendChild(b);
+    });
+    qOpts.appendChild(h); qOpts.appendChild(t2);
+    h.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  function gradeTwoTier(i,j){
+    const t1=qOpts.querySelector('.tier'), t2=qOpts.querySelector('.tier2');
+    if(t2.dataset.done) return;
+    t2.dataset.done='1';
+    const okA=curItem.opts[i].ok, okB=curItem.reasons[j].ok;
+    [...t1.children].forEach((b,bi)=>{b.classList.remove('sel');
+      if(curItem.opts[bi].ok)b.classList.add('correct');
+      else if(bi===i)b.classList.add('wrong');});
+    [...t2.children].forEach((b,bj)=>{b.classList.add('locked');b.onclick=null;
+      if(curItem.reasons[bj].ok)b.classList.add('correct');
+      else if(bj===j)b.classList.add('wrong');});
+    const note=(okA&&okB)?'' :
+      (okA&&!okB) ? ' <i>Ответ верный, но обоснование — нет: похоже, вы угадали.</i>' :
+      (!okA&&okB) ? ' <i>Обоснование верное, но ответ — нет: перечитайте условие.</i>' : '';
+    commit(okA&&okB, note);
   }
 
   function liveScore(){return 'Верно: '+session.answers.filter(a=>a).length+' из '+session.answers.length;}
@@ -395,10 +453,10 @@
   function hideCheck(){qCheck.style.display='none';qCheck.onclick=null;}
 
   // Common finalisation after any question is graded
-  function commit(correct){
+  function commit(correct,note){
     session.answers[session.idx]=correct;
     recordAnswer(correct);
-    qExplain.innerHTML=(correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+esc(curItem.why);
+    qExplain.innerHTML=(correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+esc(curItem.why)+(note||'');
     qExplain.className='explain show';
     qScore.textContent=liveScore();
     qNext.className='next ready';
@@ -530,6 +588,10 @@
     }
     if(item.type==='order'){
       return '<span class="ok">'+item.solution.map((t,i)=>(i+1)+'. '+esc(t)).join('<br>')+'</span>';
+    }
+    if(item.type==='twotier'){
+      return '<span class="ok">Ответ: '+esc(item.opts.find(o=>o.ok).text)+
+             '<br>Обоснование: '+esc(item.reasons.find(r=>r.ok).text)+'</span>';
     }
     return '';
   }
