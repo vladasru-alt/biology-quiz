@@ -116,6 +116,23 @@
   .orderitem .ctrl button:disabled{opacity:.3;cursor:default}
   .orderitem.ok{border-color:var(--green);background:rgba(47,191,113,.1)} .orderitem.ok .num{border-color:var(--green);color:var(--green);background:var(--green);color:#08210f}
   .orderitem.bad{border-color:var(--red);background:rgba(229,83,75,.1)}
+  /* Chapter hook + achievements */
+  .hook{font-size:14px;color:var(--ink);line-height:1.55;margin:12px 0 0;padding:11px 14px;
+    border-left:3px solid var(--accent);background:linear-gradient(90deg,rgba(56,189,248,.10),transparent);
+    border-radius:8px;display:none}
+  .hook.show{display:block;animation:fade .35s ease}
+  .hook .mood{display:block;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+  .achv{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+  .chip{font-size:12px;padding:4px 11px;border-radius:20px;border:1px solid rgba(47,191,113,.4);
+    background:rgba(47,191,113,.10);color:var(--green);animation:fade .4s ease}
+  .chip.pending{border-color:var(--line);background:transparent;color:var(--muted)}
+  #achvLive{margin-top:8px}
+  /* Supportive messages */
+  .support{font-size:13.5px;color:var(--muted);line-height:1.5;margin:10px 0 0;
+    padding:9px 12px;border-left:3px solid rgba(56,189,248,.35);background:rgba(56,189,248,.05);border-radius:6px;display:none}
+  .support.show{display:block;animation:fade .35s ease}
+  .support.warm{border-left-color:rgba(240,180,41,.5);background:rgba(240,180,41,.06)}
+  #flowSupport{margin:12px 0 0}
   /* Two-tier */
   .tier{display:flex;flex-direction:column;gap:10px}
   .tier2head{margin:18px 0 10px;font-weight:700;font-size:15px;color:var(--accent);
@@ -225,6 +242,9 @@
       <div class="qcount" id="qCount"></div>
     </div>
     <div class="bar"><i id="qBar"></i></div>
+    <div class="hook" id="qHook"></div>
+    <div class="support" id="flowSupport"></div>
+    <div class="achv" id="achvLive"></div>
     <div class="card">
       <span class="qbadge" id="qBadge"></span>
       <p class="qtext" id="qText"></p>
@@ -232,6 +252,7 @@
       <div class="opts" id="qOpts"></div>
       <button class="checkbtn" id="qCheck" style="display:none">Проверить ответ</button>
       <div class="explain" id="qExplain"></div>
+      <div class="support" id="qSupport"></div>
       <div class="qnav">
         <div class="score-live" id="qScore"></div>
         <button class="next" id="qNext">Далее →</button>
@@ -252,6 +273,8 @@
     </div>
     <div class="verdict" id="rVerdict"></div>
     <div class="rsum" id="rSum"></div>
+    <div class="support" id="rSupport" style="text-align:left"></div>
+    <div class="achv" id="rAchv" style="justify-content:center"></div>
     <button class="cta" id="retryBtn">↻ Пройти заново</button>
     <button class="cta secondary" id="homeBtn">← К списку глав</button>
     <div class="review" id="review"></div>
@@ -318,6 +341,69 @@
   let session=null, curItem=null;
 
   function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+  // ---- Supportive messages (centralised in supportText) ----
+  const ST=(typeof supportText!=='undefined')?supportText:{};
+  function pick(key){const a=ST[key];return (a&&a.length)?a[Math.random()*a.length|0]:'';}
+  function say(el,key,warm){
+    const msg=pick(key); if(!msg){el.className='support';return;}
+    el.textContent=msg; el.className='support show'+(warm?' warm':'');
+  }
+  function clearSay(el){el.textContent='';el.className='support';}
+  // top-level const не попадает в window — обращаемся к идентификаторам напрямую
+  const ACHV  = (typeof microAchievements!=='undefined')?microAchievements:[];
+  const FOCUS = (typeof focusPrompts!=='undefined')?focusPrompts:{};
+  const STREAK= (typeof streak!=='undefined')?streak:{};
+  const HOOKS = (typeof chapterHooks!=='undefined')?chapterHooks:{};
+  const MOOD  = (typeof chapterMood!=='undefined')?chapterMood:{};
+  const LABELS= (typeof chapterLabels!=='undefined')?chapterLabels:[];
+  function pickFrom(a){return (a&&a.length)?a[Math.random()*a.length|0]:'';}
+  function sayText(el,msg,warm){
+    if(!msg){el.className='support';return;}
+    el.textContent=msg; el.className='support show'+(warm?' warm':'');
+  }
+  // выдать ярлык-достижение один раз за прохождение
+  function award(id){
+    const s=session; if(!s||s.earned[id])return;
+    const a=ACHV.find(x=>x.id===id); if(!a)return;
+    s.earned[id]=a.label;
+    const box=$('achvLive');
+    const chip=document.createElement('span'); chip.className='chip'; chip.textContent='✓ '+a.label;
+    box.appendChild(chip);
+    while(box.children.length>3) box.removeChild(box.firstChild);
+  }
+  // тематические ярлыки: три верных по одной теме
+  function trackTopic(correct){
+    if(!correct)return;
+    const txt=JSON.stringify(curItem);
+    ACHV.filter(a=>a.topic).forEach(a=>{
+      if(new RegExp(a.topic,'i').test(txt)){
+        session.topicHits[a.id]=(session.topicHits[a.id]||0)+1;
+        if(session.topicHits[a.id]>=3) award(a.id);
+      }
+    });
+  }
+  // настройка внимания перед трудной темой — один раз за прохождение
+  function showHook(chKey){
+    const el=$('qHook'), box=$('achvLive'); box.innerHTML='';
+    const text=chKey?HOOKS[chKey]:null, mood=chKey?MOOD[chKey]:null;
+    if(!text){el.className='hook';el.innerHTML='';return;}
+    el.innerHTML=(mood?'<span class="mood">'+esc(mood)+'</span>':'')+esc(text);
+    el.className='hook show';
+  }
+  function maybeFocus(){
+    // пауза между сообщениями потока, чтобы подсказки не сыпались подряд
+    if(session.idx - (session.lastFlowAt??-99) < 6) return false;
+    const txt=JSON.stringify(curItem);
+    for(const [k,p] of Object.entries(FOCUS)){
+      if(session.focusShown[k])continue;
+      if(new RegExp(p.topic,'i').test(txt)){
+        session.focusShown[k]=1; session.lastFlowAt=session.idx;
+        sayText($('flowSupport'),p.text); return true;
+      }
+    }
+    return false;
+  }
   function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 
   // Normalise a raw question into a runtime item (with shuffling + embedded correctness)
@@ -368,14 +454,14 @@
 
   function startQuiz(key){
     const ch=QUIZ[key];
-    session={key, title:ch.title, questions:shuffle(ch.questions).map(prep), idx:0, answers:[]};
-    show('quiz'); renderQuestion();
+    session={key, title:ch.title, questions:shuffle(ch.questions).map(prep), idx:0, answers:[], wrongStreak:0, rightStreak:0, shown:{}, earned:{}, topicHits:{}, focusShown:{}, hadDoubleMiss:false};
+    show('quiz'); showHook(key); renderQuestion(); say($('flowSupport'),'chapterStart');
   }
   function startMixed(){
     let pool=[];
     Object.values(QUIZ).forEach(ch=>ch.questions.forEach(q=>pool.push(q)));
-    session={key:'__mixed', title:'🎲 Смешанный тест', questions:shuffle(pool).slice(0,15).map(prep), idx:0, answers:[]};
-    show('quiz'); renderQuestion();
+    session={key:'__mixed', title:'🎲 Смешанный тест', questions:shuffle(pool).slice(0,15).map(prep), idx:0, answers:[], wrongStreak:0, rightStreak:0, shown:{}, earned:{}, topicHits:{}, focusShown:{}, hadDoubleMiss:false};
+    show('quiz'); showHook(null); renderQuestion(); say($('flowSupport'),'quizStart');
   }
 
   // ---- Rendering dispatch ----
@@ -390,7 +476,16 @@
     qScore.textContent=liveScore();
     qOpts.innerHTML='';
     qExplain.className='explain'; qExplain.innerHTML='';
+    clearSay($('qSupport'));
     hideCheck();
+    // вехи прохождения и настройка внимания перед трудной темой
+    const pct=s.idx/s.questions.length*100;
+    s.shown=s.shown||{};
+    const milestone=[[75,'progress75'],[50,'progress50'],[25,'progress25']].some(([p,key])=>{
+      if(pct>=p && !s.shown[key]){s.shown[key]=1;s.lastFlowAt=s.idx;say($('flowSupport'),key);return true;}
+      return false;
+    });
+    if(!milestone) maybeFocus();
     qNext.className='next';
     qNext.textContent=(s.idx===s.questions.length-1)?'Показать результат →':'Далее →';
 
@@ -460,6 +555,25 @@
     qExplain.className='explain show';
     qScore.textContent=liveScore();
     qNext.className='next ready';
+    // поддержка по ходу: серии, две ошибки подряд, тематические ярлыки
+    const s=session;
+    s.wrongStreak = correct ? 0 : (s.wrongStreak||0)+1;
+    const prevRun = s.rightStreak||0;
+    s.rightStreak = correct ? prevRun+1 : 0;
+    if(correct){
+      if(s.rightStreak===3){sayText($('qSupport'),pickFrom(STREAK.three));award('logic');}
+      else if(s.rightStreak===5){sayText($('qSupport'),pickFrom(STREAK.five));}
+      else say($('qSupport'),'correct');
+      if(curItem.type==='twotier') award('mechanism');
+    } else {
+      if(prevRun>=3) sayText($('qSupport'),pickFrom(STREAK.broken),true);
+      else if(s.wrongStreak>=2) say($('qSupport'),'twoWrongInRow',true);
+      else say($('qSupport'),'incorrect',true);
+    }
+    trackTopic(correct);
+    // «удержал темп»: половина главы пройдена без двух ошибок подряд
+    if(s.idx+1>=Math.ceil(s.questions.length/2) && !s.hadDoubleMiss) award('tempo');
+    if(s.wrongStreak>=2) s.hadDoubleMiss=true;
   }
 
   // ---- Single / Multi / True-False ----
@@ -621,6 +735,12 @@
     else if(pct>=50){v.textContent='Неплохо, но есть пробелы';v.className='verdict mid';}
     else {v.textContent='Стоит повторить главу';v.className='verdict low';}
     document.getElementById('rSum').textContent=s.title;
+    say($('rSupport'),'chapterComplete');
+    const lab=(LABELS.find(l=>pct>=l.min)||{}).label;
+    if(lab) $('rVerdict').textContent=lab;
+    if(s.key.slice(0,2)==='ch') award('complete');
+    const rb=$('rAchv'); rb.innerHTML='';
+    Object.values(s.earned).forEach(l=>{const c=document.createElement('span');c.className='chip';c.textContent='✓ '+l;rb.appendChild(c);});
 
     // review
     const rev=document.getElementById('review'); rev.innerHTML='<h3 style="margin:24px 0 12px">Разбор</h3>';
@@ -654,8 +774,8 @@
     const wrong=currentMistakes();
     if(!wrong.length){alert('Отлично — сейчас нет ошибок для проработки!');return;}
     const qs=wrong.map(m=>qLookup[m.q]).filter(Boolean).map(x=>prep(x.raw));
-    session={key:'__review', title:'🎯 Работа над ошибками', questions:shuffle(qs), idx:0, answers:[]};
-    show('quiz'); renderQuestion(); window.scrollTo({top:0});
+    session={key:'__review', title:'🎯 Работа над ошибками', questions:shuffle(qs), idx:0, answers:[], wrongStreak:0, rightStreak:0, shown:{}, earned:{}, topicHits:{}, focusShown:{}, hadDoubleMiss:false};
+    show('quiz'); showHook(null); renderQuestion(); say($('flowSupport'),'retry'); window.scrollTo({top:0});
   }
 
   // ---- Dashboard (личный кабинет) ----
@@ -803,6 +923,7 @@
     if(session.key==='__mixed') startMixed();
     else if(session.key==='__review') startReview();
     else startQuiz(session.key);
+    say($('flowSupport'),'retry');
     window.scrollTo({top:0});
   };
   $('dashBtn').onclick=()=>{window.scrollTo({top:0});show('dash');};
