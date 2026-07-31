@@ -444,7 +444,7 @@
         '<div class="ic">'+ch.icon+'</div>'+
         '<h3>'+esc(ch.title)+'</h3>'+
         '<div class="d">'+esc(ch.desc)+'</div>'+
-        '<div class="meta"><span>блок '+Math.min(BLOCK,ch.questions.length)+' из '+ch.questions.length+'</span>'+
+        '<div class="meta"><span>'+ch.questions.length+' вопросов</span>'+
         (best!=null?'<span class="best">Лучший: '+best+'%</span>':'<span class="best none">Не пройдено</span>')+
         '</div>';
       card.onclick=()=>startQuiz(key);
@@ -452,19 +452,20 @@
     });
   }
 
-  // ---- Adaptive block sessions ----
-  // Глава выдаётся не целиком, а блоком: 80 вопросов подряд измеряют усталость, а не биологию.
-  // Вопросы выбираются на лету — по метаданным topic (охват тем) и difficulty (подстройка под ответы).
-  const BLOCK=15;
+  // ---- Sessions ----
+  // Глава проходится целиком: задаются все её вопросы, прогресс-бар показывает выполнение главы.
+  // Метаданные задают не отбор, а порядок: лёгкие вперёд, темы вперемежку, сложность следует за ответами.
+  const MIXED=15;
+  // У глав 6–10 нет метаданных: тема берётся по главе, чтобы все они не слились в один бакет.
+  const topicOf=q=>q.topic||('гл:'+((qLookup[q.q]||{}).ch||'?'));
   const diffOf=q=>typeof q.difficulty==='number'?q.difficulty:2;
-  const topicOf=q=>q.topic||'—';
 
   function makeSession(key,title,pool,size){
     return {key, title, pool:shuffle(pool), questions:[], total:Math.min(size,pool.length),
             idx:0, answers:[], wrongStreak:0, rightStreak:0, target:1, topicCount:{},
             shown:{}, earned:{}, topicHits:{}, focusShown:{}, hadDoubleMiss:false};
   }
-  // Выбор следующего вопроса: сначала непокрытые темы, затем близость к текущей целевой сложности.
+  // Порядок следующего вопроса: сначала непокрытые темы, затем близость к текущей целевой сложности.
   function pickNext(s){
     if(!s.pool.length) return null;
     let best=Infinity, ties=[];
@@ -478,15 +479,31 @@
     return q;
   }
 
+  // Смешанный тест набирается по квотам глав (метод наибольших остатков), а не общим отбором:
+  // у глав 6–10 нет difficulty, и в едином зачёте они проигрывают вчистую — тест терял их целиком.
+  function mixedPool(n){
+    const keys=Object.keys(QUIZ);
+    const total=keys.reduce((a,k)=>a+QUIZ[k].questions.length,0);
+    const quota=keys.map(k=>{
+      const exact=n*QUIZ[k].questions.length/total;
+      return {k, take:Math.floor(exact), rem:exact-Math.floor(exact)};
+    });
+    let left=n-quota.reduce((a,q)=>a+q.take,0);
+    // ничьи по остатку разрываем случайно: при стабильной сортировке главы равного размера
+    // (например 8-я и 9-я — по 20 вопросов) делят слот детерминированно, и одна не выпадает никогда
+    shuffle(quota).sort((a,b)=>b.rem-a.rem).forEach(q=>{ if(left>0){q.take++; left--;} });
+    let out=[];
+    quota.forEach(q=>{ out=out.concat(shuffle(QUIZ[q.k].questions).slice(0,q.take)); });
+    return out;
+  }
+
   function startQuiz(key){
     const ch=QUIZ[key];
-    session=makeSession(key, ch.title, ch.questions, BLOCK);
+    session=makeSession(key, ch.title, ch.questions, ch.questions.length);
     show('quiz'); showHook(key); renderQuestion(); say($('flowSupport'),'chapterStart');
   }
   function startMixed(){
-    let pool=[];
-    Object.values(QUIZ).forEach(ch=>ch.questions.forEach(q=>pool.push(q)));
-    session=makeSession('__mixed','🎲 Смешанный тест', pool, BLOCK);
+    session=makeSession('__mixed','🎲 Смешанный тест', mixedPool(MIXED), MIXED);
     show('quiz'); showHook(null); renderQuestion(); say($('flowSupport'),'quizStart');
   }
 
@@ -817,7 +834,7 @@
     const wrong=currentMistakes();
     if(!wrong.length){alert('Отлично — сейчас нет ошибок для проработки!');return;}
     const qs=wrong.map(m=>qLookup[m.q]).filter(Boolean).map(x=>x.raw);
-    session=makeSession('__review','🎯 Работа над ошибками', qs, Math.min(qs.length,BLOCK));
+    session=makeSession('__review','🎯 Работа над ошибками', qs, qs.length);
     show('quiz'); showHook(null); renderQuestion(); say($('flowSupport'),'retry'); window.scrollTo({top:0});
   }
 
