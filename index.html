@@ -335,7 +335,7 @@
     multi:'Выберите все верные варианты, затем нажмите «Проверить».',
     match:'Для каждого пункта слева выберите подходящий вариант справа.',
     order:'Расставьте по порядку кнопками ▲ ▼, затем нажмите «Проверить».',
-    twotier:'Сначала выберите ответ, затем объясните, почему вы так решили. Засчитывается только при верных обоих шагах.'
+    twotier:'Сначала выберите ответ. Если он верен — потребуется объяснить, почему вы так решили; засчитывается только при верных обоих шагах.'
   };
 
   let session=null, curItem=null;
@@ -444,7 +444,7 @@
         '<div class="ic">'+ch.icon+'</div>'+
         '<h3>'+esc(ch.title)+'</h3>'+
         '<div class="d">'+esc(ch.desc)+'</div>'+
-        '<div class="meta"><span>'+ch.questions.length+' вопросов</span>'+
+        '<div class="meta"><span>блок '+Math.min(BLOCK,ch.questions.length)+' из '+ch.questions.length+'</span>'+
         (best!=null?'<span class="best">Лучший: '+best+'%</span>':'<span class="best none">Не пройдено</span>')+
         '</div>';
       card.onclick=()=>startQuiz(key);
@@ -452,24 +452,57 @@
     });
   }
 
+  // ---- Adaptive block sessions ----
+  // Глава выдаётся не целиком, а блоком: 80 вопросов подряд измеряют усталость, а не биологию.
+  // Вопросы выбираются на лету — по метаданным topic (охват тем) и difficulty (подстройка под ответы).
+  const BLOCK=15;
+  const diffOf=q=>typeof q.difficulty==='number'?q.difficulty:2;
+  const topicOf=q=>q.topic||'—';
+
+  function makeSession(key,title,pool,size){
+    return {key, title, pool:shuffle(pool), questions:[], total:Math.min(size,pool.length),
+            idx:0, answers:[], wrongStreak:0, rightStreak:0, target:1, topicCount:{},
+            shown:{}, earned:{}, topicHits:{}, focusShown:{}, hadDoubleMiss:false};
+  }
+  // Выбор следующего вопроса: сначала непокрытые темы, затем близость к текущей целевой сложности.
+  function pickNext(s){
+    if(!s.pool.length) return null;
+    let best=Infinity, ties=[];
+    s.pool.forEach((q,i)=>{
+      const score=(s.topicCount[topicOf(q)]||0)*10 + Math.abs(diffOf(q)-s.target);
+      if(score<best){best=score; ties=[i];}
+      else if(score===best) ties.push(i);
+    });
+    const q=s.pool.splice(ties[Math.random()*ties.length|0],1)[0];
+    s.topicCount[topicOf(q)]=(s.topicCount[topicOf(q)]||0)+1;
+    return q;
+  }
+
   function startQuiz(key){
     const ch=QUIZ[key];
-    session={key, title:ch.title, questions:shuffle(ch.questions).map(prep), idx:0, answers:[], wrongStreak:0, rightStreak:0, shown:{}, earned:{}, topicHits:{}, focusShown:{}, hadDoubleMiss:false};
+    session=makeSession(key, ch.title, ch.questions, BLOCK);
     show('quiz'); showHook(key); renderQuestion(); say($('flowSupport'),'chapterStart');
   }
   function startMixed(){
     let pool=[];
     Object.values(QUIZ).forEach(ch=>ch.questions.forEach(q=>pool.push(q)));
-    session={key:'__mixed', title:'🎲 Смешанный тест', questions:shuffle(pool).slice(0,15).map(prep), idx:0, answers:[], wrongStreak:0, rightStreak:0, shown:{}, earned:{}, topicHits:{}, focusShown:{}, hadDoubleMiss:false};
+    session=makeSession('__mixed','🎲 Смешанный тест', pool, BLOCK);
     show('quiz'); showHook(null); renderQuestion(); say($('flowSupport'),'quizStart');
   }
 
   // ---- Rendering dispatch ----
   function renderQuestion(){
-    const s=session; curItem=s.questions[s.idx];
+    const s=session;
+    // вопрос подбирается в момент показа — так учитываются ответы на предыдущие
+    if(!s.questions[s.idx]){
+      const raw=pickNext(s);
+      if(!raw){ finish(); return; }
+      s.questions[s.idx]=prep(raw);
+    }
+    curItem=s.questions[s.idx];
     $('qTitle').textContent=s.title;
-    $('qCount').textContent='Вопрос '+(s.idx+1)+' из '+s.questions.length;
-    $('qBar').style.width=(s.idx/s.questions.length*100)+'%';
+    $('qCount').textContent='Вопрос '+(s.idx+1)+' из '+s.total;
+    $('qBar').style.width=(s.idx/s.total*100)+'%';
     qText.textContent=curItem.q;
     qBadge.textContent=BADGE[curItem.type]||'Вопрос';
     qHint.textContent=HINT[curItem.type]||'';
@@ -479,7 +512,7 @@
     clearSay($('qSupport'));
     hideCheck();
     // вехи прохождения и настройка внимания перед трудной темой
-    const pct=s.idx/s.questions.length*100;
+    const pct=s.idx/s.total*100;
     s.shown=s.shown||{};
     const milestone=[[75,'progress75'],[50,'progress50'],[25,'progress25']].some(([p,key])=>{
       if(pct>=p && !s.shown[key]){s.shown[key]=1;s.lastFlowAt=s.idx;say($('flowSupport'),key);return true;}
@@ -487,7 +520,7 @@
     });
     if(!milestone) maybeFocus();
     qNext.className='next';
-    qNext.textContent=(s.idx===s.questions.length-1)?'Показать результат →':'Далее →';
+    qNext.textContent=(s.idx===s.total-1)?'Показать результат →':'Далее →';
 
     if(curItem.type==='single'||curItem.type==='truefalse') renderChoice(false);
     else if(curItem.type==='multi') renderChoice(true);
@@ -513,6 +546,16 @@
     t1.dataset.done='1'; t1.dataset.pick=i;
     [...t1.children].forEach((b,bi)=>{b.classList.add('locked');b.onclick=null;
       if(bi===i)b.classList.add('sel');});
+    // первый шаг неверен — второй не спрашиваем: обосновывать неверный ответ нечего
+    if(!curItem.opts[i].ok){
+      [...t1.children].forEach((b,bi)=>{b.classList.remove('sel');
+        if(curItem.opts[bi].ok)b.classList.add('correct');
+        else if(bi===i)b.classList.add('wrong');});
+      const right=curItem.reasons.find(r=>r.ok);
+      commit(false, ' <i>Шаг 2 пропущен: обоснование имеет смысл только при верном ответе. Верное обоснование — «'+
+        esc(right.text)+'».</i>');
+      return;
+    }
     const h=document.createElement('div'); h.className='tier2head';
     h.textContent='Шаг 2. '+curItem.reasonQ;
     const t2=document.createElement('div'); t2.className='tier tier2';
@@ -525,21 +568,18 @@
     qOpts.appendChild(h); qOpts.appendChild(t2);
     h.scrollIntoView({behavior:'smooth',block:'nearest'});
   }
+  // сюда попадаем только при верном первом шаге — оценивается одно обоснование
   function gradeTwoTier(i,j){
     const t1=qOpts.querySelector('.tier'), t2=qOpts.querySelector('.tier2');
     if(t2.dataset.done) return;
     t2.dataset.done='1';
-    const okA=curItem.opts[i].ok, okB=curItem.reasons[j].ok;
+    const okB=curItem.reasons[j].ok;
     [...t1.children].forEach((b,bi)=>{b.classList.remove('sel');
-      if(curItem.opts[bi].ok)b.classList.add('correct');
-      else if(bi===i)b.classList.add('wrong');});
+      if(curItem.opts[bi].ok)b.classList.add('correct');});
     [...t2.children].forEach((b,bj)=>{b.classList.add('locked');b.onclick=null;
       if(curItem.reasons[bj].ok)b.classList.add('correct');
       else if(bj===j)b.classList.add('wrong');});
-    const note=(okA&&okB)?'' :
-      (okA&&!okB) ? ' <i>Ответ верный, но обоснование — нет: похоже, вы угадали.</i>' :
-      (!okA&&okB) ? ' <i>Обоснование верное, но ответ — нет: перечитайте условие.</i>' : '';
-    commit(okA&&okB, note);
+    commit(okB, okB?'':' <i>Ответ верный, но обоснование — нет: похоже, вы угадали.</i>');
   }
 
   function liveScore(){return 'Верно: '+session.answers.filter(a=>a).length+' из '+session.answers.length;}
@@ -571,8 +611,11 @@
       else say($('qSupport'),'incorrect',true);
     }
     trackTopic(correct);
-    // «удержал темп»: половина главы пройдена без двух ошибок подряд
-    if(s.idx+1>=Math.ceil(s.questions.length/2) && !s.hadDoubleMiss) award('tempo');
+    // подстройка сложности следующего вопроса: две ошибки подряд — легче, три верных — труднее
+    if(!correct && s.wrongStreak>=2) s.target=Math.max(1,s.target-1);
+    else if(correct && s.rightStreak>=3 && s.rightStreak%3===0) s.target=Math.min(3,s.target+1);
+    // «удержал темп»: половина блока пройдена без двух ошибок подряд
+    if(s.idx+1>=Math.ceil(s.total/2) && !s.hadDoubleMiss) award('tempo');
     if(s.wrongStreak>=2) s.hadDoubleMiss=true;
   }
 
@@ -685,7 +728,7 @@
   qNext.onclick=()=>{
     const s=session;
     if(s.answers[s.idx]==null) return; // must answer first
-    if(s.idx<s.questions.length-1){s.idx++;renderQuestion();}
+    if(s.idx<s.total-1){s.idx++;renderQuestion();}
     else finish();
   };
 
@@ -713,7 +756,7 @@
   function finish(){
     const s=session;
     const correct=s.answers.filter(a=>a).length;
-    const total=s.questions.length;
+    const total=s.answers.length||1; // блок может кончиться раньше, если вопросы в пуле исчерпаны
     const pct=Math.round(correct/total*100);
     document.getElementById('qBar').style.width='100%';
 
@@ -773,8 +816,8 @@
   function startReview(){
     const wrong=currentMistakes();
     if(!wrong.length){alert('Отлично — сейчас нет ошибок для проработки!');return;}
-    const qs=wrong.map(m=>qLookup[m.q]).filter(Boolean).map(x=>prep(x.raw));
-    session={key:'__review', title:'🎯 Работа над ошибками', questions:shuffle(qs), idx:0, answers:[], wrongStreak:0, rightStreak:0, shown:{}, earned:{}, topicHits:{}, focusShown:{}, hadDoubleMiss:false};
+    const qs=wrong.map(m=>qLookup[m.q]).filter(Boolean).map(x=>x.raw);
+    session=makeSession('__review','🎯 Работа над ошибками', qs, Math.min(qs.length,BLOCK));
     show('quiz'); showHook(null); renderQuestion(); say($('flowSupport'),'retry'); window.scrollTo({top:0});
   }
 
