@@ -18,7 +18,7 @@ def e(s):
     return html.escape(str(s if s is not None else ""), quote=True)
 
 
-STATUS = {"П": ("p", "подтверждено"), "ОИ": ("oi", "одиночный источник"), "О": ("o", "оценка"), "НП": ("np", "не проверено")}
+STATUS = {"П": ("p", "подтверждено"), "ОИ": ("oi", "одиночный источник"), "О": ("o", "оценка"), "НП": ("np", "не проверено"), "З": ("z", "заявление компании о себе")}
 
 
 def badges(h):
@@ -28,7 +28,10 @@ def badges(h):
         cls, name = STATUS[code]
         tip = name + (": " + re.sub(r"<[^>]+>", "", rest) if rest else "")
         return f'<span class="st st-{cls}" title="{e(tip)}">{code}</span>'
-    return re.sub(r"\[(П|ОИ|О|НП)(?::\s*([^\]]*))?\]", rep, h)
+    def combo(m):
+        return "".join(f'<span class="st st-{STATUS[c][0]}" title="{STATUS[c][1]}">{c}</span>' for c in re.split(r"\s*/\s*", m.group(1)))
+    h = re.sub(r"\[((?:П|ОИ|О|НП|З)(?:\s*/\s*(?:П|ОИ|О|НП|З))+)\]", combo, h)
+    return re.sub(r"\[(П|ОИ|О|НП|З)(?::\s*([^\]]*))?\]", rep, h)
 
 
 def t(s):
@@ -106,7 +109,7 @@ LABEL_POS = {  # dx, dy, anchor
     "А7": (16, 5, "start"), "ВЭД-Мастер": (12, 4, "start"), "Своя компания": (10, 4, "start"), "GPO": (11, 4, "start"),
     "КВТ": (0, 22, "middle"), "Raketa Pay": (11, 0, "start"), "Dalistra": (13, 8, "start"), "Платежка": (11, 4, "start"),
     "neoved": (-12, 5, "end"), "Карго": (14, 5, "start"), "USDT": (11, 4, "start"),
-    "United Stream — сейчас": (12, 18, "start"), "United Stream — цель": (0, -16, "middle"),
+    "United Stream — сейчас": (-12, 20, "end"), "United Stream — цель": (0, -16, "middle"),
 }
 
 
@@ -431,7 +434,7 @@ method = sec("method", "Методика", "Откуда данные и чег�
     '<li>Экономика клиента — оценка. Все решения о бюджете выше минимального ждут выгрузки финотдела.</li>'
     '<li>Выдача — один снимок от 24.09.2026, до решений перепроверить в Топвизоре.</li></ul></div></div>'
     '<h3 class="sub">Досье</h3><ul class="src">' + "".join(f'<li><a href="{GH}research/{f}" target="_blank" rel="noopener">{e(n)}</a></li>' for f, n in SOURCES) + "</ul>"
-    '<p class="small">Статусы данных: <span class="st st-p">П</span> подтверждено первоисточником, <span class="st st-oi">ОИ</span> одиночный источник, <span class="st st-o">О</span> оценка, <span class="st st-np">НП</span> не проверено.</p>')
+    '<p class="small">Статусы данных: <span class="st st-p">П</span> подтверждено первоисточником, <span class="st st-oi">ОИ</span> одиночный источник, <span class="st st-o">О</span> оценка, <span class="st st-np">НП</span> не проверено, <span class="st st-z">З</span> заявление компании о себе.</p>')
 
 SUBNAV = [("summary-top", "Резюме"), ("competitors", "Конкуренты"), ("a7", "А7"), ("battlecards", "Battlecards"), ("positioning", "Позиционирование"),
           ("site", "Сайт"), ("channels", "Каналы"), ("budget", "Бюджет"), ("plan", "План"), ("risks", "Риски"), ("method", "Методика")]
@@ -448,7 +451,7 @@ page = f"""<title>Стратегия United Stream</title>
 <header class="top">
   <div class="wrap">
     <p class="eyebrow">Конкурентный анализ и стратегия продвижения</p>
-    <h1>United Stream: международные платежи для бизнеса</h1>
+    <h1>Стратегия продвижения United Stream на 12 месяцев</h1>
     <dl class="slip">
       <div><dt>Объект</dt><dd>unitedstream.ru · ООО «ЮНАЙТЕД СТРИМ», ИНН 9701326060</dd></div>
       <div><dt>Срез</dt><dd>24.09.2026</dd></div>

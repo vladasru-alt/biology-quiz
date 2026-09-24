@@ -23,6 +23,7 @@
   --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --others:#5f6966;
 }
 *{box-sizing:border-box}
+.sec>*,.fig>*,.panel>*,.card>*,.two>*,.cols3>*,.cards>*,.facts>*,.stages>*,.qas>*,.swot>*,.doc-grid>*,.timeline>li>*{min-width:0}
 body{background:var(--plane);color:var(--ink);font-family:var(--font);font-size:15.5px;line-height:1.55}
 .page{min-height:100%}
 .wrap{max-width:1160px;margin:0 auto;padding-inline:20px}
@@ -36,7 +37,7 @@ code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);border:
 
 /* шапка: как бланк платёжного поручения */
 .top{background:var(--surface);border-bottom:1px solid var(--line);padding-block:28px 22px}
-.top h1{font-size:clamp(26px,4vw,40px);font-weight:700;letter-spacing:-.01em;max-width:24ch}
+.top h1{font-size:clamp(26px,4vw,40px);font-weight:700;letter-spacing:-.01em;max-width:32ch}
 .slip{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0;margin:22px 0 0;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
 .slip div{padding:10px 14px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface-2)}
 .slip dt{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -111,6 +112,7 @@ ul.cols li{break-inside:avoid}
 .st-oi{color:var(--warn-ink);border-color:color-mix(in srgb,var(--s4) 55%,transparent)}
 .st-o{color:var(--accent-ink);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
 .st-np{color:var(--crit-ink);border-color:color-mix(in srgb,var(--crit) 45%,transparent)}
+.st-z{color:var(--muted)}
 
 /* панели и карточки */
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
@@ -228,6 +230,7 @@ details.data .tbl{border:0}
 .doc blockquote{margin:0 0 12px;border-left:3px solid var(--line-2);padding-left:14px;color:var(--ink-2)}
 .doc .tbl{margin:0 0 16px}
 .doc .tbl table{min-width:640px}
+.doc pre{overflow-x:auto;background:var(--surface-2);padding:10px;border-radius:6px}
 .doc hr{border:0;border-top:1px solid var(--line);margin:24px 0}
 @media (max-width:900px){.doc-grid{grid-template-columns:1fr}.toc-box{position:static;max-height:none}.toc-box:not([open]) .doc-toc{display:none}}
 
