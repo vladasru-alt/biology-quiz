@@ -116,6 +116,8 @@
   .orderitem .ctrl button:disabled{opacity:.3;cursor:default}
   .orderitem.ok{border-color:var(--green);background:rgba(47,191,113,.1)} .orderitem.ok .num{border-color:var(--green);color:var(--green);background:var(--green);color:#08210f}
   .orderitem.bad{border-color:var(--red);background:rgba(229,83,75,.1)}
+  .orderfix{margin-top:10px;font-size:13.5px;line-height:1.7;color:var(--muted)}
+  .orderfix .ok{color:var(--green)}
   /* Chapter hook + achievements */
   .hook{font-size:14px;color:var(--ink);line-height:1.55;margin:12px 0 0;padding:11px 14px;
     border-left:3px solid var(--accent);background:linear-gradient(90deg,rgba(56,189,248,.10),transparent);
@@ -198,7 +200,9 @@
   .export-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
   .export-row .cta{flex:1 1 200px;width:auto;margin:0}
   footer{text-align:center;color:var(--muted);font-size:12px;margin-top:34px;line-height:1.7}
-  @media(max-width:520px){.qtext{font-size:16px}.card{padding:16px}.ring{width:140px;height:140px}}
+  @media(max-width:520px){.qtext{font-size:16px}.card{padding:16px}.ring{width:140px;height:140px}
+    .matchrow{flex-direction:column;align-items:stretch;gap:6px;margin-bottom:14px}.matchrow .ml{flex:none}.matchrow .arr{display:none}}
+  @media(pointer:coarse){.orderitem .ctrl button{width:44px;height:36px;font-size:13px}}
 </style>
 </head>
 <body>
@@ -206,7 +210,7 @@
   <header class="top">
     <div class="kicker">Тесты по биологии</div>
     <h1>Д. Тейлор · Н. Грин · У. Стаут — «Биология», том 1</h1>
-    <p>Проверьте себя по 10 главам: от разнообразия жизни до экологии</p>
+    <p>Тренируйтесь вспоминать и объяснять: 10 глав, от введения в биологию до экологии</p>
     <div class="userbar" id="userbar" style="display:none">
       <span class="who">👤 <b id="userName"></b></span>
       <button id="dashBtn">📊 Личный кабинет</button>
@@ -315,17 +319,27 @@
   // ---- User accounts (username only, stored per-device) ----
   const CUR='bio_current_user';
   let user=null;
-  const qLookup={};
-  Object.keys(QUIZ).forEach(ck=>QUIZ[ck].questions.forEach(raw=>{qLookup[raw.q]={ch:ck, raw};}));
+  // История привязана к постоянному id вопроса: правка формулировки не должна стирать прогресс ученика.
+  const qLookup={}, idByText={};
+  Object.keys(QUIZ).forEach(ck=>QUIZ[ck].questions.forEach(raw=>{qLookup[raw.id]={ch:ck, raw}; idByText[raw.q]=raw.id;}));
   function udKey(n){return 'bio_user_'+n;}
-  function loadUser(n){const r=localStorage.getItem(udKey(n));const d=r?JSON.parse(r):{};user={name:n, best:d.best||{}, history:d.history||[]};}
-  function saveUser(){if(!user)return;localStorage.setItem(udKey(user.name),JSON.stringify({best:user.best,history:user.history}));localStorage.setItem(CUR,user.name);}
-  function latestByQ(){const m={};user.history.forEach(h=>{if(!m[h.q]||h.t>=m[h.q].t)m[h.q]=h;});return m;}
-  function currentMistakes(){const m=latestByQ(),out=[];Object.values(m).forEach(h=>{if(!h.correct&&qLookup[h.q])out.push({q:h.q,ch:h.ch});});return out;}
+  // localStorage может быть недоступен (приватный режим, встроенный браузер) — тогда работаем в памяти
+  function loadUser(n){
+    let d={};
+    try{const r=localStorage.getItem(udKey(n)); d=r?JSON.parse(r):{};}catch(e){d={};}
+    user={name:n, best:d.best||{}, history:d.history||[]};
+    // записи до появления id хранили только текст вопроса — переносим их, пока текст ещё совпадает
+    let moved=false;
+    user.history.forEach(h=>{if(!h.id&&idByText[h.q]){h.id=idByText[h.q];moved=true;}});
+    if(moved) saveUser();
+  }
+  function saveUser(){if(!user)return;try{localStorage.setItem(udKey(user.name),JSON.stringify({best:user.best,history:user.history}));localStorage.setItem(CUR,user.name);}catch(e){}}
+  function latestByQ(){const m={};user.history.forEach(h=>{if(h.id&&(!m[h.id]||h.t>=m[h.id].t))m[h.id]=h;});return m;}
+  function currentMistakes(){const m=latestByQ(),out=[];Object.values(m).forEach(h=>{if(!h.correct&&qLookup[h.id])out.push({id:h.id,ch:qLookup[h.id].ch});});return out;}
   function recordAnswer(correct){
     if(!user)return;
-    const meta=qLookup[curItem.q];
-    user.history.push({t:Date.now(), q:curItem.q, ch:meta?meta.ch:session.key, correct:!!correct});
+    const meta=qLookup[curItem.id];
+    user.history.push({t:Date.now(), id:curItem.id, q:curItem.q, ch:meta?meta.ch:session.key, correct:!!correct});
     if(user.history.length>3000)user.history=user.history.slice(-3000);
     saveUser();
   }
@@ -375,7 +389,8 @@
   // тематические ярлыки: три верных по одной теме
   function trackTopic(correct){
     if(!correct)return;
-    const txt=JSON.stringify(curItem);
+    // тема — по условию и пояснению: слово в неверном варианте не значит, что вопрос о нём
+    const txt=curItem.q+' '+curItem.why;
     ACHV.filter(a=>a.topic).forEach(a=>{
       if(new RegExp(a.topic,'i').test(txt)){
         session.topicHits[a.id]=(session.topicHits[a.id]||0)+1;
@@ -394,7 +409,7 @@
   function maybeFocus(){
     // пауза между сообщениями потока, чтобы подсказки не сыпались подряд
     if(session.idx - (session.lastFlowAt??-99) < 6) return false;
-    const txt=JSON.stringify(curItem);
+    const txt=curItem.q; // настройка перед вопросом — только по его условию, без вариантов и пояснения
     for(const [k,p] of Object.entries(FOCUS)){
       if(session.focusShown[k])continue;
       if(new RegExp(p.topic,'i').test(txt)){
@@ -404,12 +419,12 @@
     }
     return false;
   }
-  function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+  function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
   // Normalise a raw question into a runtime item (with shuffling + embedded correctness)
   function prep(q){
     const type=q.type||'single';
-    const it={type, q:q.q, why:q.why};
+    const it={type, id:q.id, q:q.q, why:q.why};
     if(type==='single'){
       it.opts=shuffle(q.options.map((t,i)=>({text:t,ok:i===q.correct})));
     } else if(type==='multi'){
@@ -456,8 +471,8 @@
   // Глава проходится целиком: задаются все её вопросы, прогресс-бар показывает выполнение главы.
   // Метаданные задают не отбор, а порядок: лёгкие вперёд, темы вперемежку, сложность следует за ответами.
   const MIXED=15;
-  // У глав 6–10 нет метаданных: тема берётся по главе, чтобы все они не слились в один бакет.
-  const topicOf=q=>q.topic||('гл:'+((qLookup[q.q]||{}).ch||'?'));
+  // Запасной ключ темы — глава: вопрос без topic не должен сливаться с другими в один бакет.
+  const topicOf=q=>q.topic||('гл:'+((qLookup[q.id]||{}).ch||'?'));
   const diffOf=q=>typeof q.difficulty==='number'?q.difficulty:2;
 
   function makeSession(key,title,pool,size){
@@ -480,7 +495,7 @@
   }
 
   // Смешанный тест набирается по квотам глав (метод наибольших остатков), а не общим отбором:
-  // у глав 6–10 нет difficulty, и в едином зачёте они проигрывают вчистую — тест терял их целиком.
+  // так каждая глава представлена пропорционально своему размеру.
   function mixedPool(n){
     const keys=Object.keys(QUIZ);
     const total=keys.reduce((a,k)=>a+QUIZ[k].questions.length,0);
@@ -490,7 +505,7 @@
     });
     let left=n-quota.reduce((a,q)=>a+q.take,0);
     // ничьи по остатку разрываем случайно: при стабильной сортировке главы равного размера
-    // (например 8-я и 9-я — по 20 вопросов) делят слот детерминированно, и одна не выпадает никогда
+    // делят слот детерминированно, и одна из них не выпадает никогда
     shuffle(quota).sort((a,b)=>b.rem-a.rem).forEach(q=>{ if(left>0){q.take++; left--;} });
     let out=[];
     quota.forEach(q=>{ out=out.concat(shuffle(QUIZ[q.k].questions).slice(0,q.take)); });
@@ -528,6 +543,10 @@
     qExplain.className='explain'; qExplain.innerHTML='';
     clearSay($('qSupport'));
     hideCheck();
+    // вступление к главе — только перед первым вопросом, а реплики потока гаснут через два вопроса:
+    // висящий над карточкой текст подсказывал бы ответы вместо того, чтобы их вспоминать
+    if(s.idx>0) $('qHook').className='hook';
+    if(s.idx-(s.lastFlowAt??0)>=2) clearSay($('flowSupport'));
     // вехи прохождения и настройка внимания перед трудной темой
     const pct=s.idx/s.total*100;
     s.shown=s.shown||{};
@@ -610,6 +629,7 @@
     recordAnswer(correct);
     qExplain.innerHTML=(correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+esc(curItem.why)+(note||'');
     qExplain.className='explain show';
+    qExplain.scrollIntoView({behavior:'smooth',block:'nearest'});
     qScore.textContent=liveScore();
     qNext.className='next ready';
     // поддержка по ходу: серии, две ошибки подряд, тематические ярлыки
@@ -631,9 +651,10 @@
     // подстройка сложности следующего вопроса: две ошибки подряд — легче, три верных — труднее
     if(!correct && s.wrongStreak>=2) s.target=Math.max(1,s.target-1);
     else if(correct && s.rightStreak>=3 && s.rightStreak%3===0) s.target=Math.min(3,s.target+1);
-    // «удержал темп»: половина блока пройдена без двух ошибок подряд
-    if(s.idx+1>=Math.ceil(s.total/2) && !s.hadDoubleMiss) award('tempo');
+    // «удержал темп»: половина пути пройдена без двух ошибок подряд
+    // (флаг ставится до проверки — иначе вторая ошибка подряд на середине не отменяла бы ярлык)
     if(s.wrongStreak>=2) s.hadDoubleMiss=true;
+    if(s.idx+1>=Math.ceil(s.total/2) && !s.hadDoubleMiss) award('tempo');
   }
 
   // ---- Single / Multi / True-False ----
@@ -739,6 +760,12 @@
     [...qOpts.children].forEach((row,i)=>{
       if(a[i]===sol[i])row.classList.add('ok'); else {row.classList.add('bad');all=false;}
     });
+    // одна сдвинутая строка красит все следующие — без верного порядка ученик не увидит, где ошибся
+    if(!all){
+      const fix=document.createElement('div'); fix.className='orderfix';
+      fix.innerHTML='Верный порядок:<br>'+correctAnswerHTML(curItem);
+      qOpts.appendChild(fix);
+    }
     hideCheck(); commit(all);
   }
 
@@ -785,19 +812,19 @@
     document.getElementById('rPct').textContent=pct+'%';
     document.getElementById('rFrac').textContent=correct+' из '+total;
     const off=465-(465*pct/100);
+    // цвет и ярлык берут одни пороги; красного нет — низкий результат здесь точка старта, а не приговор
     const ring=document.getElementById('ringFg');
-    ring.style.stroke = pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
+    ring.style.stroke = pct>=70?'var(--green)':'var(--amber)';
     ring.style.transition='none'; ring.style.strokeDashoffset='465';
     requestAnimationFrame(()=>{ring.style.transition='stroke-dashoffset 1s ease';ring.style.strokeDashoffset=off;});
 
     const v=document.getElementById('rVerdict');
-    if(pct>=80){v.textContent='Отлично! Материал усвоен 🎉';v.className='verdict good';}
-    else if(pct>=50){v.textContent='Неплохо, но есть пробелы';v.className='verdict mid';}
-    else {v.textContent='Стоит повторить главу';v.className='verdict low';}
+    v.textContent=(LABELS.find(l=>pct>=l.min)||{}).label||'';
+    v.className='verdict '+(pct>=70?'good':'mid');
     document.getElementById('rSum').textContent=s.title;
     say($('rSupport'),'chapterComplete');
-    const lab=(LABELS.find(l=>pct>=l.min)||{}).label;
-    if(lab) $('rVerdict').textContent=lab;
+    // повторять «Работу над ошибками» нечего, если все ошибки уже исправлены
+    $('retryBtn').style.display=(s.key==='__review'&&!currentMistakes().length)?'none':'';
     if(s.key.slice(0,2)==='ch') award('complete');
     const rb=$('rAchv'); rb.innerHTML='';
     Object.values(s.earned).forEach(l=>{const c=document.createElement('span');c.className='chip';c.textContent='✓ '+l;rb.appendChild(c);});
@@ -833,7 +860,7 @@
   function startReview(){
     const wrong=currentMistakes();
     if(!wrong.length){alert('Отлично — сейчас нет ошибок для проработки!');return;}
-    const qs=wrong.map(m=>qLookup[m.q]).filter(Boolean).map(x=>x.raw);
+    const qs=wrong.map(m=>qLookup[m.id]).filter(Boolean).map(x=>x.raw);
     session=makeSession('__review','🎯 Работа над ошибками', qs, qs.length);
     show('quiz'); showHook(null); renderQuestion(); say($('flowSupport'),'retry'); window.scrollTo({top:0});
   }
@@ -846,41 +873,43 @@
     const acc=total?Math.round(correct/total*100):0;
     const mistakes=currentMistakes();
     $('dashSub').textContent='Пользователь: '+user.name+' · всего ответов: '+total;
-    const accCol=acc>=70?'var(--green)':acc>=40?'var(--amber)':'var(--red)';
+    const accCol=acc>=70?'var(--green)':'var(--amber)';
     $('statCards').innerHTML=
       '<div class="stat"><b>'+total+'</b><span>ответов дано</span></div>'+
       '<div class="stat"><b style="color:'+accCol+'">'+acc+'%</b><span>точность</span></div>'+
-      '<div class="stat"><b style="color:var(--red)">'+mistakes.length+'</b><span>ошибок для проработки</span></div>';
+      '<div class="stat"><b style="color:var(--amber)">'+mistakes.length+'</b><span>ошибок для проработки</span></div>';
     const rb=$('reviewBtn');
     rb.textContent='🎯 Работа над ошибками'+(mistakes.length?' ('+mistakes.length+')':'');
     rb.style.opacity=mistakes.length?'1':'.5';
     rb.style.pointerEvents=mistakes.length?'auto':'none';
 
-    // per-chapter mastery (based on latest answer to each question)
+    // освоение главы: полоса — доля освоенных из ВСЕХ вопросов главы (по последнему ответу),
+    // иначе один верный ответ из смешанного теста рисовал бы «100%» у непройденной главы
     const latest=latestByQ();
     const cp=$('chapterProgress'); cp.innerHTML='';
     Object.keys(QUIZ).forEach(ck=>{
       const qs=QUIZ[ck].questions;
       let attempted=0, mastered=0;
-      qs.forEach(raw=>{const h=latest[raw.q]; if(h){attempted++; if(h.correct)mastered++;}});
-      const masteryPct=attempted?Math.round(mastered/attempted*100):0;
-      const col=attempted===0?'var(--muted)':masteryPct>=70?'var(--green)':masteryPct>=40?'var(--amber)':'var(--red)';
+      qs.forEach(raw=>{const h=latest[raw.id]; if(h){attempted++; if(h.correct)mastered++;}});
+      const accuracy=attempted?Math.round(mastered/attempted*100):0;
+      const col=attempted===0?'var(--muted)':accuracy>=70?'var(--green)':'var(--amber)';
       const row=document.createElement('div'); row.className='progress-row';
+      row.title=attempted?'Отвечено '+attempted+' из '+qs.length+', верно по последнему ответу — '+accuracy+'%':'Глава ещё не начата';
       row.innerHTML='<div class="pl">'+QUIZ[ck].icon+' '+esc(QUIZ[ck].title)+'</div>'+
-        '<div class="mini"><i style="width:'+(attempted?masteryPct:0)+'%;background:'+col+'"></i></div>'+
-        '<div class="pv">'+(attempted?masteryPct+'% ('+attempted+'/'+qs.length+')':'—')+'</div>';
+        '<div class="mini"><i style="width:'+Math.round(mastered/qs.length*100)+'%;background:'+col+'"></i></div>'+
+        '<div class="pv">'+(attempted?mastered+' из '+qs.length:'—')+'</div>';
       cp.appendChild(row);
     });
 
     // mistakes grouped by chapter
     const ml=$('mistakeList'); ml.innerHTML='';
-    if(!mistakes.length){ ml.innerHTML='<div class="empty">Пока нет ошибок — так держать! 🎉</div>'; }
+    if(!mistakes.length){ ml.innerHTML='<div class="empty">'+(total?'Сейчас нет ошибок для проработки.':'Пройдите любую главу — здесь появятся темы для проработки.')+'</div>'; }
     else{
       const byCh={};
       mistakes.forEach(m=>{(byCh[m.ch]=byCh[m.ch]||[]).push(m);});
       Object.keys(QUIZ).forEach(ck=>{
         (byCh[ck]||[]).forEach(m=>{
-          const meta=qLookup[m.q]; if(!meta)return;
+          const meta=qLookup[m.id]; if(!meta)return;
           const item=prep(meta.raw);
           const el=document.createElement('div'); el.className='mistake';
           el.innerHTML='<div class="mch">'+esc(QUIZ[ck].title)+'</div>'+
@@ -901,6 +930,7 @@
     if(t==='multi') return q.correct.map(i=>q.options[i]).join('; ');
     if(t==='match') return q.left.map((l,i)=>l+' → '+q.right[i]).join('; ');
     if(t==='order') return q.items.map((x,i)=>(i+1)+'. '+x).join('; ');
+    if(t==='twotier') return q.options[q.correct]+' — обоснование: '+q.reasons[q.reasonCorrect];
     return '';
   }
   function safe(s){return String(s).replace(/[^0-9A-Za-zА-Яа-яЁё_-]+/g,'_');}
@@ -929,13 +959,13 @@
     const latest=latestByQ();
     return Object.keys(QUIZ).map(ck=>{
       const qs=QUIZ[ck].questions; let a=0,m=0;
-      qs.forEach(r=>{const h=latest[r.q]; if(h){a++; if(h.correct)m++;}});
+      qs.forEach(r=>{const h=latest[r.id]; if(h){a++; if(h.correct)m++;}});
       return {chapter:ck, title:QUIZ[ck].title, attempted:a, total:qs.length, mastery:a?Math.round(m/a*100):null};
     });
   }
   function gatherMistakes(){
     return currentMistakes().map(m=>{
-      const raw=qLookup[m.q].raw;
+      const raw=qLookup[m.id].raw;
       return {chapter:m.ch, chapterTitle:QUIZ[m.ch]?QUIZ[m.ch].title:m.ch,
         type:raw.type||'single', question:raw.q,
         correctAnswer:correctAnswerTextRaw(raw), explanation:raw.why, source:raw};
@@ -950,7 +980,7 @@
   function exportHistoryCSV(){
     const rows=[['datetime','chapter','result','question']];
     user.history.forEach(h=>{
-      rows.push([new Date(h.t).toISOString(), QUIZ[h.ch]?QUIZ[h.ch].title:h.ch, h.correct?'верно':'ошибка', h.q]);
+      rows.push([new Date(h.t).toISOString(), QUIZ[h.ch]?QUIZ[h.ch].title:h.ch, h.correct?'верно':'ошибка', (qLookup[h.id]?qLookup[h.id].raw.q:h.q)]);
     });
     const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
     download('bio-istoriya-'+safe(user.name)+'-'+dstamp()+'.csv', '﻿'+csv, 'text/csv;charset=utf-8');
@@ -977,7 +1007,12 @@
 
   // ---- Wiring ----
   $('mixedBtn').onclick=startMixed;
-  $('quitBtn').onclick=()=>show('menu');
+  // глава длинная, а кнопка выхода рядом с «Далее» — случайное касание не должно обнулять прохождение
+  $('quitBtn').onclick=()=>{
+    const s=session, inProgress=s&&s.answers.length>0&&s.answers.length<s.total;
+    if(inProgress&&!confirm('Выйти к списку глав? Ответы сохранятся в истории, но итог и разбор этого прохождения не появятся.'))return;
+    show('menu');
+  };
   $('homeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');};
   $('retryBtn').onclick=()=>{
     if(session.key==='__mixed') startMixed();
