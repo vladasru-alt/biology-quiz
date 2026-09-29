@@ -312,7 +312,7 @@
     <button class="cta" id="retryBtn">↻ Пройти заново</button>
     <button class="cta secondary" id="homeBtn">← К списку глав</button>
     <div class="review" id="review"></div>
-    <footer>Вопросы с ошибками и угаданные уже в очереди повторения: они вернутся завтра, затем через 3, 7 и 21 день.</footer>
+    <footer id="rFoot"></footer>
   </section>
 
   <!-- Dashboard -->
@@ -432,12 +432,20 @@
     // он не входит ни в точность, ни в освоение и не продвигает вопрос в очереди (ошибка же ставит его на завтра)
     const again=!!curItem.retry||!!session.practice;
     if(again) rec.retry=true;
+    if(session.practice&&curItem.retry) rec.again=true;
     if(curItem.conf) rec.conf=curItem.conf;
     // в повторение попадают только трудные вопросы — в общую точность такие ответы не берём
     if(session.key==='__review') rec.mode='review';
     if(session.practice) rec.mode='practice';
     user.history.push(rec);
-    if(user.history.length>3000)user.history=user.history.slice(-3000);
+    // при обрезке истории сначала выбрасываем старые повторы и работу над ошибками: на освоение и точность
+    // они не влияют. Последние записи не трогаем, иначе у полной истории новый повтор исчезал бы сразу
+    const LIM=3000, KEEP=200;
+    if(user.history.length>LIM){
+      let extra=user.history.length-LIM; const cut=user.history.length-KEEP;
+      user.history=user.history.filter((h,i)=>!(extra>0&&i<cut&&h.retry&&extra--));
+      if(user.history.length>LIM)user.history=user.history.slice(-LIM);
+    }
     srsUpdate(curItem.id,!!correct,again,curItem.conf);
     saveUser();
   }
@@ -623,7 +631,8 @@
       rb.textContent='▶ Продолжить: '+saved.title+' — отвечено '+done+' из '+saved.total;
     }
     // на карточке — освоение, а не лучший процент: сразу повторённая глава даёт высокий процент за счёт
-    // узнавания только что виденных вариантов, а освоение растёт лишь от верных ответов, выдержавших паузу
+    // узнавания только что виденных вариантов. Освоен вопрос, если последний ответ верен и не угадан,
+    // а после ошибки — если он хотя бы раз верно повторён в срок (masteredBy)
     const latest=user?latestByQ():{};
     Object.keys(QUIZ).forEach(key=>{
       const ch=QUIZ[key], n=ch.questions.length;
@@ -640,7 +649,7 @@
         '<h3>'+esc(ch.title)+'</h3>'+
         '<div class="d">'+esc(ch.desc)+'</div>'+
         '<div class="meta"><span>'+n+' вопросов</span>'+
-        (attempted?'<span class="best'+(mastered/n>=0.7?'':' part')+'" title="Последний ответ верен, не угадан и не ждёт повторения после ошибки">Освоено '+mastered+' из '+n+'</span>'
+        (attempted?'<span class="best'+(mastered/n>=0.7?'':' part')+'" title="Последний ответ верен и не угадан; после ошибки — хотя бы одно верное повторение в срок">Освоено '+mastered+' из '+n+'</span>'
           :'<span class="best none">Не начата</span>')+
         '</div>';
       card.onclick=()=>startQuiz(key);
@@ -924,10 +933,11 @@
       $('qCount').textContent='Вопрос '+(s.idx+1)+' из '+s.total+(curItem.retry?' · повтор':'');
       qNext.textContent=(s.idx===s.total-1)?'Показать результат →':'Далее →';
     }
-    // повтор сразу после разбора и угаданный ответ не показывают знания — в серии, ярлыки и подстройку сложности их не берём
+    // повтор сразу после разбора, работа над ошибками и угаданный ответ не показывают знания —
+    // в серии, ярлыки и подстройку сложности их не берём;
     // угаданный верный ответ не хвалим за «пойманную логику» — сам ученик сказал, что угадал
-    if(curItem.retry||(correct&&curItem.conf==='guess')){
-      say($('qSupport'),!correct?'incorrect':(curItem.conf==='guess'&&!curItem.retry?'guessedRight':'correct'),!correct); return;
+    if(curItem.retry||s.practice||(correct&&curItem.conf==='guess')){
+      say($('qSupport'),!correct?'incorrect':s.practice?'fixRight':(curItem.conf==='guess'&&!curItem.retry?'guessedRight':'correct'),!correct); return;
     }
     // поддержка по ходу: серии, две ошибки подряд, тематические ярлыки
     s.wrongStreak = correct ? 0 : (s.wrongStreak||0)+1;
@@ -1148,13 +1158,15 @@
     const off=465-(465*pct/100);
     // цвет и ярлык берут одни пороги; красного нет — низкий результат здесь точка старта, а не приговор
     const ring=document.getElementById('ringFg');
-    ring.style.stroke = pct>=70?'var(--green)':'var(--amber)';
+    // работа над ошибками — тренировка сразу после разбора: процент не красим как оценку
+    ring.style.stroke = s.practice?'var(--muted)':pct>=70?'var(--green)':'var(--amber)';
     ring.style.transition='none'; ring.style.strokeDashoffset='465';
     requestAnimationFrame(()=>{ring.style.transition='stroke-dashoffset 1s ease';ring.style.strokeDashoffset=off;});
 
     const v=document.getElementById('rVerdict');
-    v.textContent=(LABELS.find(l=>pct>=l.min)||{}).label||'';
-    v.className='verdict '+(pct>=70?'good':'mid');
+    v.textContent=s.practice?'Исправлено '+correct+' из '+first.length+'. Проверка — в повторении, не раньше завтра'
+      :(LABELS.find(l=>pct>=l.min)||{}).label||'';
+    v.className='verdict '+(!s.practice&&pct>=70?'good':'mid');
     document.getElementById('rSum').textContent=s.title;
 
     // повторы и уверенность: что закрепилось сразу и насколько самооценка совпала с результатом
@@ -1174,21 +1186,27 @@
     // главное действие после итогов — добрать ошибки и угаданные, а не пройти всё заново:
     // повторное прохождение сразу после разбора проверяет узнавание вариантов, а не память
     const fixIds=[...new Set(first.filter(x=>!x.a||s.questions[x.i].conf==='guess').map(x=>s.questions[x.i].id))].filter(id=>qLookup[id]);
-    const nWrong=first.filter(x=>!x.a).length, nGuess=fixIds.length-new Set(first.filter(x=>!x.a).map(x=>s.questions[x.i].id)).size;
+    const wrongIds=new Set(first.filter(x=>!x.a).map(x=>s.questions[x.i].id).filter(id=>qLookup[id]));
+    const nWrong=wrongIds.size, nGuess=fixIds.length-nWrong;
     s.fixIds=fixIds;
-    const fb=$('fixBtn'), rt=$('retryBtn');
+    const fb=$('fixBtn'), rt=$('retryBtn'), dueNow=user?srsDue().length:0;
     fb.style.display=fixIds.length?'':'none';
-    fb.textContent='🎯 Повторить '+(nWrong&&nGuess?'ошибки и угаданные':nWrong?'ошибки':'угаданные')+' ('+fixIds.length+')';
-    if(s.key==='__review'){
-      // после повторения главная кнопка берёт следующую порцию на сегодня, а если её нет — прячется
-      const d=srsDue().length; rt.textContent='🔁 Ещё '+Math.min(d,REVIEW_MAX)+' на сегодня'; rt.style.display=d?'':'none';
-      rt.className='cta'; fb.className='cta'+(d?' secondary':'');
-    } else if(s.key==='__fix'){
-      rt.style.display='none'; fb.className='cta';
+    // название — как у самой сессии: «повторить» путалось бы с «Повторением», которое идёт в зачёт
+    fb.textContent='🎯 Работа над ошибками: '+(nWrong&&nGuess?'ошибки и угаданные':nWrong?'ошибки':'угаданные')+' ('+fixIds.length+')';
+    if(s.key==='__review'||s.key==='__fix'){
+      // после повторения (и после работы над ошибками) — путь к следующей порции повторения на сегодня
+      rt.textContent=s.key==='__review'?'🔁 Ещё '+Math.min(dueNow,REVIEW_MAX)+' на сегодня':'🔁 Повторение на сегодня ('+Math.min(dueNow,REVIEW_MAX)+')';
+      rt.style.display=dueNow?'':'none';
+      const reviewFirst=s.key==='__review'&&dueNow;
+      rt.className='cta'+(!reviewFirst&&fixIds.length?' secondary':''); fb.className='cta'+(reviewFirst?' secondary':'');
     } else {
       rt.textContent=s.key==='__mixed'?'🎲 Новый смешанный тест':'↻ Пройти главу заново'; rt.style.display='';
       rt.className='cta'+(fixIds.length?' secondary':''); fb.className='cta';
     }
+    // главная кнопка — выше второстепенной, и Tab доходит до неё первой
+    if(rt.className==='cta'&&fb.className!=='cta') rt.parentNode.insertBefore(rt,fb); else fb.parentNode.insertBefore(fb,rt);
+    $('rFoot').textContent=fixIds.length?'Ошибки и угаданные уже в очереди повторения — вернутся не раньше завтра. Работа над ошибками сейчас — тренировка, в зачёт идёт повторение.':'';
+    $('rFoot').style.display=fixIds.length?'':'none';
     if(s.key.slice(0,2)==='ch') award('complete');
     const rb=$('rAchv'); rb.innerHTML='';
     Object.values(s.earned).forEach(l=>{const c=document.createElement('span');c.className='chip';c.textContent='✓ '+l;rb.appendChild(c);});
@@ -1293,7 +1311,7 @@
     rb.style.opacity=due.length?'1':'.5';
     rb.style.pointerEvents=due.length?'auto':'none';
     $('reviewNote').textContent=mistakes.length
-      ?'В очереди повторения: '+mistakes.length+'. Ошибка возвращается на следующий день, затем через 3, 7 и 21 день; после четырёх верных ответов в срок вопрос считается усвоенным.'+(!due.length&&next?' Следующее повторение — '+fmtWhen(next)+'.':'')
+      ?'В очереди повторения: '+mistakes.length+'. Ошибка возвращается на следующий день, затем через 3, 7 и 21 день; после четырёх верных ответов в срок вопрос уходит из очереди.'+(!due.length&&next?' Следующее повторение — '+fmtWhen(next)+'.':'')
       :'';
 
     // освоение главы: полоса — доля освоенных из ВСЕХ вопросов главы (по последнему ответу),
@@ -1306,7 +1324,7 @@
       // угаданный ответ и верный ответ до срока повторения (из рабочей памяти) ещё не освоение
       qs.forEach(raw=>{const h=latest[raw.id]; if(h){attempted++; if(masteredBy(h))mastered++;}});
       const accuracy=attempted?Math.round(mastered/attempted*100):0;
-      const col=attempted===0?'var(--muted)':accuracy>=70?'var(--green)':'var(--amber)';
+      const col=attempted===0?'var(--muted)':mastered/qs.length>=0.7?'var(--green)':'var(--amber)';
       const row=document.createElement('div'); row.className='progress-row';
       row.title=attempted?'Отвечено '+attempted+' из '+qs.length+', верно по последнему ответу (без угаданных и ответов до срока повторения) — '+accuracy+'%':'Глава ещё не начата';
       row.innerHTML='<div class="pl">'+QUIZ[ck].icon+' '+esc(QUIZ[ck].title)+'</div>'+
@@ -1378,7 +1396,7 @@
     return Object.keys(QUIZ).map(ck=>{
       const qs=QUIZ[ck].questions; let a=0,m=0;
       qs.forEach(r=>{const h=latest[r.id]; if(h){a++; if(masteredBy(h))m++;}});
-      return {chapter:ck, title:QUIZ[ck].title, attempted:a, total:qs.length, mastery:a?Math.round(m/a*100):null};
+      return {chapter:ck, title:QUIZ[ck].title, attempted:a, mastered:m, total:qs.length, mastery:a?Math.round(m/a*100):null};
     });
   }
   // очередь повторения: ошибки, угаданные ответы и то, что ещё закрепляется по интервалам
@@ -1403,7 +1421,7 @@
     const CL={sure:'уверен',unsure:'сомневаюсь',guess:'угадываю'};
     const rows=[['datetime','chapter','session','result','attempt','confidence','question']];
     user.history.forEach(h=>{
-      rows.push([new Date(h.t).toISOString(), QUIZ[h.ch]?QUIZ[h.ch].title:h.ch, h.mode==='review'?'повторение':h.mode==='practice'?'работа над ошибками':'тест', h.correct?'верно':'ошибка', h.retry?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
+      rows.push([new Date(h.t).toISOString(), QUIZ[h.ch]?QUIZ[h.ch].title:h.ch, h.mode==='review'?'повторение':h.mode==='practice'?'работа над ошибками':'тест', h.correct?'верно':'ошибка', (h.mode==='practice'?h.again:h.retry)?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
     });
     const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
     download('bio-istoriya-'+safe(user.name)+'-'+dstamp()+'.csv', '﻿'+csv, 'text/csv;charset=utf-8');
@@ -1413,7 +1431,7 @@
     const weak=chapterStats().filter(c=>c.attempted>0 && c.mastery<70);
     let p='Ты — преподаватель биологии. Составь для меня новый тренировочный тест по темам, в которых я ошибаюсь.\n';
     p+='Учебник: Д. Тейлор, Н. Грин, У. Стаут «Биология», том 1.\n\n';
-    if(weak.length){ p+='Мои слабые главы (точность ниже 70%):\n'+weak.map(w=>'— '+w.title+' — '+w.mastery+'%').join('\n')+'\n\n'; }
+    if(weak.length){ p+='Мои слабые главы (среди отвеченных вопросов освоено меньше 70%):\n'+weak.map(w=>'— '+w.title+' — освоено '+w.mastered+' из '+w.attempted+' отвеченных ('+w.total+' в главе)').join('\n')+'\n\n'; }
     if(mistakes.length){
       p+='Вопросы, которые я ещё прорабатываю (ошибся, угадал или закрепляю), с правильными ответами (используй их как ориентир по темам, но НЕ повторяй дословно):\n';
       mistakes.forEach((m,i)=>{ p+=(i+1)+'. ['+m.chapterTitle+', '+m.status+'] '+m.question+'\n   Правильный ответ: '+m.correctAnswer+'\n'; });
@@ -1440,9 +1458,9 @@
   $('resumeBtn').onclick=resumeSession;
   $('homeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');focusMenu();};
   $('retryBtn').onclick=()=>{
-    if(!session||session.key==='__fix')return;
+    if(!session)return;
     if(session.key==='__mixed') startMixed();
-    else if(session.key==='__review') startReview();
+    else if(session.key==='__review'||session.key==='__fix') startReview();
     else {startQuiz(session.key); say($('flowSupport'),'retry');}
   };
   $('fixBtn').onclick=startFix;
