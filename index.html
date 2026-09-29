@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Биология · Тесты по учебнику Тейлора, Грина, Стаута (Том 1)</title>
+<title>Биология · Тесты по учебнику Тейлора, Грина, Стаута (том 1)</title>
 <style>
   :root{
     --bg:#0f1720; --bg2:#16212e; --card:#1b2836; --card2:#22303f;
@@ -244,7 +244,7 @@
   <section class="login" id="login">
     <div class="lc">
       <h2>Вход в личный кабинет</h2>
-      <p>Введите имя — история ваших ответов будет сохраняться на этом устройстве, чтобы вы видели свои ошибки и могли их проработать.</p>
+      <p>Введите имя — история ответов будет храниться на этом устройстве. По ней вы увидите свои ошибки и сможете их проработать.</p>
       <input id="loginInput" type="text" placeholder="Ваше имя" maxlength="24" autocomplete="off">
       <button class="cta" id="loginBtn" style="margin-top:16px">Войти →</button>
     </div>
@@ -260,7 +260,7 @@
     <footer>
       Материалы основаны на учебнике «Biological Science 1&amp;2» (Cambridge University Press),
       русское издание: БИНОМ. Лаборатория знаний, 2013.<br>
-      Тесты составлены по принципам активного припоминания (retrieval practice) — учитесь, реконструируя знания, а не узнавая их.
+      Тесты построены на активном припоминании (retrieval practice): вы восстанавливаете знания по памяти, а не узнаёте готовый ответ.
     </footer>
   </section>
 
@@ -455,7 +455,7 @@
     multi:'Выберите все верные варианты, затем нажмите «Проверить».',
     match:'Для каждого пункта выберите подходящий вариант из списка.',
     order:'Расставьте по порядку кнопками ▲ ▼, затем нажмите «Проверить».',
-    twotier:'Сначала выберите ответ. Если он верен — потребуется объяснить, почему вы так решили; засчитывается только при верных обоих шагах.'
+    twotier:'Сначала выберите ответ. Если он верен, откроется шаг 2 — выбор обоснования. Вопрос засчитывается, только если верны оба шага.'
   };
 
   let session=null, curItem=null;
@@ -526,7 +526,7 @@
   function pick(key){const a=ST[key];return (a&&a.length)?a[Math.random()*a.length|0]:'';}
   function say(el,key,warm){
     const msg=pick(key); if(!msg){el.className='support';return;}
-    el.textContent=msg; el.className='support show'+(warm?' warm':'');
+    el.textContent=ty(msg); el.className='support show'+(warm?' warm':'');
   }
   function clearSay(el){el.textContent='';el.className='support';}
   // top-level const не попадает в window — обращаемся к идентификаторам напрямую
@@ -539,7 +539,7 @@
   function pickFrom(a){return (a&&a.length)?a[Math.random()*a.length|0]:'';}
   function sayText(el,msg,warm){
     if(!msg){el.className='support';return;}
-    el.textContent=msg; el.className='support show'+(warm?' warm':'');
+    el.textContent=ty(msg); el.className='support show'+(warm?' warm':'');
   }
   // выдать ярлык-достижение один раз за прохождение
   function award(id){
@@ -568,7 +568,7 @@
     const el=$('qHook'), box=$('achvLive'); box.innerHTML='';
     const text=chKey?HOOKS[chKey]:null, mood=chKey?MOOD[chKey]:null;
     if(!text){el.className='hook';el.innerHTML='';return;}
-    el.innerHTML=(mood?'<span class="mood">'+esc(mood)+'</span>':'')+esc(text);
+    el.innerHTML=(mood?'<span class="mood">'+esc(mood)+'</span>':'')+txt(text);
     el.className='hook show';
   }
   function maybeFocus(){
@@ -585,6 +585,16 @@
     return false;
   }
   function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+  // Типографика редполитики — только при выводе на экран, данные банка не меняются:
+  // неразрывный пробел после коротких предлогов, внутри чисел, между числом и единицей и перед тире,
+  // чтобы предлог не повисал в конце строки, а число не разрывалось переносом
+  const NB='\u00A0', PREP=/(^|[\s(«„"—-])(в|к|о|с|у|во|до|за|из|ко|на|об|от|по|со|В|К|О|С|У|Во|До|За|Из|Ко|На|Об|От|По|Со) (?=\S)/g;
+  function ty(s){
+    s=String(s).replace(PREP,'$1$2'+NB).replace(PREP,'$1$2'+NB);
+    return s.replace(/(\d) (?=\d{3}(?!\d))/g,'$1'+NB).replace(/(\d) (?=[%°‰А-Яа-яЁёA-Za-zμ])/g,'$1'+NB).replace(/ —/g,NB+'—');
+  }
+  // текст для показа в HTML (не для атрибутов и значений, по которым сверяется ответ)
+  function txt(s){return esc(ty(s));}
   // результат на вариантах виден цветом — для скринридера дописываем его словами
   function addSr(el,t){const s=document.createElement('span');s.className='sr-only';s.textContent=t;el.appendChild(s);}
   function markSr(btns,items,picked){
@@ -649,7 +659,7 @@
         '<h3>'+esc(ch.title)+'</h3>'+
         '<div class="d">'+esc(ch.desc)+'</div>'+
         '<div class="meta"><span>'+n+' вопросов</span>'+
-        (attempted?'<span class="best'+(mastered/n>=0.7?'':' part')+'" title="Последний ответ верен и не угадан; после ошибки — хотя бы одно верное повторение в срок">Освоено '+mastered+' из '+n+'</span>'
+        (attempted?'<span class="best'+(mastered/n>=0.7?'':' part')+'" title="Последний ответ верен и не угадан, а после ошибки вопрос хотя бы раз верно повторён в срок">Освоено '+mastered+' из '+n+'</span>'
           :'<span class="best none">Не начата</span>')+
         '</div>';
       card.onclick=()=>startQuiz(key);
@@ -774,7 +784,7 @@
     $('qTitle').textContent=s.title;
     $('qCount').textContent='Вопрос '+(s.idx+1)+' из '+s.total+(curItem.retry?' · повтор':'');
     $('qBar').style.width=(s.idx/s.total*100)+'%';
-    qText.textContent=curItem.q;
+    qText.textContent=ty(curItem.q);
     qBadge.textContent=(curItem.retry?'Ещё раз · ':'')+(BADGE[curItem.type]||'Вопрос');
     qHint.textContent=HINT[curItem.type]||'';
     qScore.textContent=liveScore();
@@ -811,7 +821,7 @@
     const t1=document.createElement('div'); t1.className='tier';
     curItem.opts.forEach((o,i)=>{
       const b=document.createElement('button'); b.className='opt';
-      b.innerHTML='<span class="mark">'+LETTERS[i]+'</span><span>'+esc(o.text)+'</span>';
+      b.innerHTML='<span class="mark">'+LETTERS[i]+'</span><span>'+txt(o.text)+'</span>';
       b.onclick=()=>pickTier1(i);
       t1.appendChild(b);
     });
@@ -832,8 +842,8 @@
         else if(bi===i)b.classList.add('wrong');});
       markSr([...t1.children],curItem.opts,i);
       const right=curItem.reasons.find(r=>r.ok);
-      commit(false, ' <i>Шаг 2 пропущен: обоснование имеет смысл только при верном ответе. Верное обоснование — «'+
-        esc(right.text)+'».</i>');
+      commit(false, ' <i>Шаг 2 пропущен: обосновывают только верный ответ. Верное обоснование — «'+
+        txt(right.text)+'».</i>');
       return;
     }
     const h=document.createElement('div'); h.className='tier2head'; h.id='tier2h';
@@ -842,7 +852,7 @@
     t2.setAttribute('role','group'); t2.setAttribute('aria-labelledby','tier2h');
     curItem.reasons.forEach((r,j)=>{
       const b=document.createElement('button'); b.className='opt';
-      b.innerHTML='<span class="mark">'+(j+1)+'</span><span>'+esc(r.text)+'</span>';
+      b.innerHTML='<span class="mark">'+(j+1)+'</span><span>'+txt(r.text)+'</span>';
       b.onclick=()=>gradeTwoTier(i,j);
       t2.appendChild(b);
     });
@@ -869,7 +879,7 @@
     if(!okB&&curItem.conf==='sure') curItem.reasonMiss=true;
     commit(okB, okB?'':(curItem.conf==='sure'
       ?' <i>Вывод верный, но держится на неверной причине — сравните своё обоснование с верным.</i>'
-      :' <i>Ответ верный, но обоснование — нет: похоже, вы угадали.</i>'));
+      :' <i>Ответ верный, но обоснование — нет. Вопрос засчитывается, только если верны оба шага.</i>'));
   }
 
   // счёт — по первым попыткам: повтор нужен для закрепления, а не для исправления процента
@@ -879,7 +889,7 @@
   // ---- Уверенность перед ответом (по желанию) ----
   // Отметка учит отличать знание от угадывания: угаданный верный ответ уходит в повторение,
   // а уверенная ошибка получает отдельный разбор — такие исправляются лучше всего.
-  const CONF=[['sure','Уверен'],['unsure','Сомневаюсь'],['guess','Угадываю']];
+  const CONF=[['sure','Знаю'],['unsure','Сомневаюсь'],['guess','Угадываю']];
   function renderConf(){
     const box=$('qConf');
     box.setAttribute('role','group'); box.setAttribute('aria-labelledby','confLbl');
@@ -919,7 +929,7 @@
       extra+=again?' <i>Этот вопрос вернётся через несколько вопросов, а затем завтра — в повторении.</i>':' <i>Вопрос вернётся завтра — в повторении.</i>';
     }
     qExplain.innerHTML=(correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+
-      (curItem.misc?'<span class="mtag">Разбор заблуждения</span> ':'')+esc(curItem.why)+(note||'')+extra;
+      (curItem.misc?'<span class="mtag">Разбор заблуждения</span> ':'')+txt(curItem.why)+(note||'')+extra;
     qExplain.className='explain show';
     // объявляем всё пояснение вместе с примечаниями («шаг 2 пропущен», «вернётся через несколько вопросов»)
     $('qLive').textContent=qExplain.textContent.replace(/^[✓✗]\s*/,'');
@@ -969,7 +979,7 @@
       const b=document.createElement('button');
       b.className='opt';
       const mark=isMulti?'<span class="box"></span>':'<span class="mark">'+LETTERS[i]+'</span>';
-      b.innerHTML=mark+'<span>'+esc(o.text)+'</span>';
+      b.innerHTML=mark+'<span>'+txt(o.text)+'</span>';
       if(isMulti){
         b.setAttribute('aria-pressed','false');
         b.onclick=()=>{const on=b.classList.toggle('sel');b.querySelector('.box').textContent=on?'✓':'';
@@ -1017,8 +1027,8 @@
       const row=document.createElement('div');
       row.className='matchrow';
       let opts='<option value="">— выберите —</option>';
-      curItem.right.forEach(r=>{opts+='<option value="'+esc(r)+'">'+esc(r)+'</option>';});
-      row.innerHTML='<div class="ml"><b>'+LETTERS[i]+'.</b>'+esc(l)+'</div>'+
+      curItem.right.forEach(r=>{opts+='<option value="'+esc(r)+'">'+txt(r)+'</option>';});
+      row.innerHTML='<div class="ml"><b>'+LETTERS[i]+'.</b>'+txt(l)+'</div>'+
         '<div class="arr">→</div>'+
         '<div class="mcell"><select aria-label="'+esc(LETTERS[i]+'. '+l)+'">'+opts+'</select><span class="mpicked" aria-hidden="true"></span></div>';
       const sel=row.querySelector('select'), picked=row.querySelector('.mpicked');
@@ -1041,7 +1051,7 @@
       const correct=curItem.solution[i];
       if(sel.value===correct){row.classList.add('ok');}
       else{row.classList.add('bad');all=false;
-        const fix=document.createElement('span');fix.className='fix';fix.textContent='✓ '+correct;
+        const fix=document.createElement('span');fix.className='fix';fix.textContent='✓ '+ty(correct);
         row.querySelector('.mcell').appendChild(fix);}
     });
     hideCheck(); commit(all);
@@ -1060,7 +1070,7 @@
       const row=document.createElement('div');row.className='orderitem';
       row.innerHTML='<div class="ctrl"><button class="up" aria-label="Поднять: '+esc(text)+'" '+(i===0?'aria-disabled="true"':'')+'>▲</button>'+
         '<button class="dn" aria-label="Опустить: '+esc(text)+'" '+(i===a.length-1?'aria-disabled="true"':'')+'>▼</button></div>'+
-        '<div class="num">'+(i+1)+'</div><div class="otext">'+esc(text)+'</div>';
+        '<div class="num">'+(i+1)+'</div><div class="otext">'+txt(text)+'</div>';
       if(!locked){
         row.querySelector('.up').onclick=()=>moveItem(i,-1);
         row.querySelector('.dn').onclick=()=>moveItem(i,1);
@@ -1109,20 +1119,20 @@
   // Correct-answer summary for the review screen (per question type)
   function correctAnswerHTML(item){
     if(item.type==='single'||item.type==='truefalse'){
-      return '<span class="ok">Ответ: '+esc(item.opts.find(o=>o.ok).text)+'</span>';
+      return '<span class="ok">Ответ: '+txt(item.opts.find(o=>o.ok).text)+'</span>';
     }
     if(item.type==='multi'){
-      return '<span class="ok">Верные: '+item.opts.filter(o=>o.ok).map(o=>esc(o.text)).join('; ')+'</span>';
+      return '<span class="ok">Верные: '+item.opts.filter(o=>o.ok).map(o=>txt(o.text)).join('; ')+'</span>';
     }
     if(item.type==='match'){
-      return '<span class="ok">'+item.left.map((l,i)=>esc(l)+' → '+esc(item.solution[i])).join('<br>')+'</span>';
+      return '<span class="ok">'+item.left.map((l,i)=>txt(l)+' → '+txt(item.solution[i])).join('<br>')+'</span>';
     }
     if(item.type==='order'){
-      return '<span class="ok">'+item.solution.map((t,i)=>(i+1)+'. '+esc(t)).join('<br>')+'</span>';
+      return '<span class="ok">'+item.solution.map((t,i)=>(i+1)+'. '+txt(t)).join('<br>')+'</span>';
     }
     if(item.type==='twotier'){
-      return '<span class="ok">Ответ: '+esc(item.opts.find(o=>o.ok).text)+
-             '<br>Обоснование: '+esc(item.reasons.find(r=>r.ok).text)+'</span>';
+      return '<span class="ok">Ответ: '+txt(item.opts.find(o=>o.ok).text)+
+             '<br>Обоснование: '+txt(item.reasons.find(r=>r.ok).text)+'</span>';
     }
     return '';
   }
@@ -1131,11 +1141,11 @@
   function yourAnswerHTML(item){
     const p=item.pick;
     if(p==null) return '';
-    if(item.type==='match') return item.left.map((l,i)=>esc(l)+' → '+esc(p[i]||'—')+(p[i]===item.solution[i]?'':' ✗')).join('<br>');
-    if(item.type==='order') return p.map((t,i)=>(i+1)+'. '+esc(t)+(t===item.solution[i]?'':' ✗')).join('<br>');
-    if(item.type==='multi') return p.length?p.map(esc).join('; '):'ничего не отмечено';
-    if(item.type==='twotier') return esc(p)+(item.pickReason?'<br>Обоснование: '+esc(item.pickReason):' (шаг 2 пропущен)');
-    return '«'+esc(p)+'»';
+    if(item.type==='match') return item.left.map((l,i)=>txt(l)+' → '+txt(p[i]||'—')+(p[i]===item.solution[i]?'':' ✗')).join('<br>');
+    if(item.type==='order') return p.map((t,i)=>(i+1)+'. '+txt(t)+(t===item.solution[i]?'':' ✗')).join('<br>');
+    if(item.type==='multi') return p.length?p.map(txt).join('; '):'ничего не отмечено';
+    if(item.type==='twotier') return txt(p)+(item.pickReason?'<br>Обоснование: '+txt(item.pickReason):' (шаг 2 пропущен)');
+    return '«'+txt(p)+'»';
   }
 
   function finish(){
@@ -1173,11 +1183,11 @@
     const retries=s.questions.map((it,i)=>({it,a:s.answers[i]})).filter(x=>x.it&&x.it.retry&&x.a!=null);
     const withConf=first.map(x=>({c:s.questions[x.i].conf,a:x.a})).filter(x=>x.c);
     const lines=[];
-    if(retries.length) lines.push('Повторено в ходе прохождения: '+retries.length+', верно при повторе: '+retries.filter(x=>x.a).length+'.');
+    if(retries.length) lines.push('Повторено за это прохождение: '+retries.length+', верно при повторе: '+retries.filter(x=>x.a).length+'.');
     if(withConf.length){
       CONF.forEach(([k,l])=>{const g=withConf.filter(x=>x.c===k); if(g.length) lines.push('Отмечено «'+l+'»: '+g.length+', верно: '+g.filter(x=>x.a).length+(k==='guess'?' — угаданные верные вернутся в повторение':'')+'.');});
       const sw=withConf.filter(x=>x.c==='sure'&&!x.a).length;
-      if(sw) lines.push('Ошибок при отметке «Уверен»: '+sw+' — они стоят первыми в разборе.');
+      if(sw) lines.push('Ошибок при отметке «Знаю»: '+sw+' — они стоят первыми в разборе.');
     }
     if(user){const d=srsDue().length,p=srsPending().length; if(p) lines.push('В очереди повторения: '+p+(d?', доступно сейчас: '+d:'')+'.');}
     $('rStats').innerHTML=lines.map(esc).join('<br>');
@@ -1219,11 +1229,11 @@
       const el=document.createElement('div');
       el.className='rev-item'+(ok?' ok-item':'');
       el.innerHTML='<div class="rq">'+(ok?'✓ ':'✗ ')+(item.misc?'<span class="mtag">Разбор заблуждения</span> ':'')+
-        (item.conf==='sure'&&!ok?'<span class="mtag">Были уверены</span> ':'')+(item.conf==='guess'&&ok?'<span class="mtag">Угадано</span> ':'')+esc(item.q)+'</div>'+
+        (item.conf==='sure'&&!ok?'<span class="mtag">Были уверены</span> ':'')+(item.conf==='guess'&&ok?'<span class="mtag">Угадано</span> ':'')+txt(item.q)+'</div>'+
         (!ok&&item.pick!=null?'<div class="you">Ваш ответ: '+yourAnswerHTML(item)+'</div>':'')+
         '<div class="rmap">'+(!ok&&(item.type==='match'||item.type==='order')?'<b>Верный ответ:</b><br>':'')+correctAnswerHTML(item)+'</div>'+
         (retryOf[i]!=null?'<div class="rnote">При повторе: '+(retryOf[i]?(ok?'закреплено':'исправлено'):(ok?'неверно':'снова неверно')+' — вопрос в очереди повторения')+'</div>':'')+
-        '<div class="ra" style="color:var(--muted);margin-top:6px">'+esc(item.why)+'</div>';
+        '<div class="ra" style="color:var(--muted);margin-top:6px">'+txt(item.why)+'</div>';
       return el;
     };
     // уверенные ошибки — первыми; угаданные верные — отдельно и открыто: знанием они ещё не стали
@@ -1311,7 +1321,7 @@
     rb.style.opacity=due.length?'1':'.5';
     rb.style.pointerEvents=due.length?'auto':'none';
     $('reviewNote').textContent=mistakes.length
-      ?'В очереди повторения: '+mistakes.length+'. Ошибка возвращается на следующий день, затем через 3, 7 и 21 день; после четырёх верных ответов в срок вопрос уходит из очереди.'+(!due.length&&next?' Следующее повторение — '+fmtWhen(next)+'.':'')
+      ?'В очереди повторения: '+mistakes.length+'. Вопрос с ошибкой возвращается на следующий день, затем через 3, 7 и 21 день. После четырёх верных ответов в срок он уходит из очереди.'+(!due.length&&next?' Следующее повторение — '+fmtWhen(next)+'.':'')
       :'';
 
     // освоение главы: полоса — доля освоенных из ВСЕХ вопросов главы (по последнему ответу),
@@ -1326,7 +1336,7 @@
       const accuracy=attempted?Math.round(mastered/attempted*100):0;
       const col=attempted===0?'var(--muted)':mastered/qs.length>=0.7?'var(--green)':'var(--amber)';
       const row=document.createElement('div'); row.className='progress-row';
-      row.title=attempted?'Отвечено '+attempted+' из '+qs.length+', верно по последнему ответу (без угаданных и ответов до срока повторения) — '+accuracy+'%':'Глава ещё не начата';
+      row.title=attempted?'Отвечено '+attempted+' из '+qs.length+'. Верно по последнему ответу, без угаданных и ответов раньше срока повторения: '+accuracy+'%':'Глава ещё не начата';
       row.innerHTML='<div class="pl">'+QUIZ[ck].icon+' '+esc(QUIZ[ck].title)+'</div>'+
         '<div class="mini"><i style="width:'+Math.round(mastered/qs.length*100)+'%;background:'+col+'"></i></div>'+
         '<div class="pv">'+(attempted?mastered+' из '+qs.length:'—')+'</div>';
@@ -1338,7 +1348,7 @@
     if(!mistakes.length){ ml.innerHTML='<div class="empty">'+(total?'Сейчас в очереди повторения пусто.':'Пройдите любую главу — здесь появятся вопросы для повторения.')+'</div>'; }
     else{
       const det=document.createElement('details'); const sm=document.createElement('summary');
-      sm.textContent='Показать вопросы и ответы ('+mistakes.length+') — полезнее сначала попробовать вспомнить';
+      sm.textContent='Показать вопросы и ответы ('+mistakes.length+') — сначала вспомните сами';
       det.appendChild(sm); ml.appendChild(det);
       const byCh={};
       mistakes.forEach(m=>{(byCh[m.ch]=byCh[m.ch]||[]).push(m);});
@@ -1349,9 +1359,9 @@
           const el=document.createElement('div'); el.className='mistake';
           const e=user.srs[m.id];
           el.innerHTML='<div class="mch">'+esc(QUIZ[ck].title)+' · повторение '+(isDue(e)?'сейчас':fmtWhen(dueAt(e)))+'</div>'+
-            '<div class="mq">'+esc(meta.raw.q)+'</div>'+
+            '<div class="mq">'+txt(meta.raw.q)+'</div>'+
             '<div class="mans">'+correctAnswerHTML(item)+'</div>'+
-            '<div class="mwhy">'+esc(meta.raw.why)+'</div>';
+            '<div class="mwhy">'+txt(meta.raw.why)+'</div>';
           det.appendChild(el);
         });
       });
@@ -1418,7 +1428,7 @@
     download('bio-oshibki-'+safe(user.name)+'-'+dstamp()+'.json', JSON.stringify(data,null,2), 'application/json;charset=utf-8');
   }
   function exportHistoryCSV(){
-    const CL={sure:'уверен',unsure:'сомневаюсь',guess:'угадываю'};
+    const CL={sure:'знаю',unsure:'сомневаюсь',guess:'угадываю'};
     const rows=[['datetime','chapter','session','result','attempt','confidence','question']];
     user.history.forEach(h=>{
       rows.push([new Date(h.t).toISOString(), QUIZ[h.ch]?QUIZ[h.ch].title:h.ch, h.mode==='review'?'повторение':h.mode==='practice'?'работа над ошибками':'тест', h.correct?'верно':'ошибка', (h.mode==='practice'?h.again:h.retry)?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
@@ -1433,7 +1443,7 @@
     p+='Учебник: Д. Тейлор, Н. Грин, У. Стаут «Биология», том 1.\n\n';
     if(weak.length){ p+='Мои слабые главы (среди отвеченных вопросов освоено меньше 70%):\n'+weak.map(w=>'— '+w.title+' — освоено '+w.mastered+' из '+w.attempted+' отвеченных ('+w.total+' в главе)').join('\n')+'\n\n'; }
     if(mistakes.length){
-      p+='Вопросы, которые я ещё прорабатываю (ошибся, угадал или закрепляю), с правильными ответами (используй их как ориентир по темам, но НЕ повторяй дословно):\n';
+      p+='Вопросы, которые я ещё прорабатываю (с ошибкой, угаданные или на закреплении), с правильными ответами (используй их как ориентир по темам, но НЕ повторяй дословно):\n';
       mistakes.forEach((m,i)=>{ p+=(i+1)+'. ['+m.chapterTitle+', '+m.status+'] '+m.question+'\n   Правильный ответ: '+m.correctAnswer+'\n'; });
       p+='\n';
     } else {
