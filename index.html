@@ -369,7 +369,9 @@
   function udKey(n){return 'bio_user_'+n;}
   // localStorage может быть недоступен (приватный режим, встроенный браузер) — тогда работаем в памяти
   function srsKey(n){return 'bio_srs_'+n;}
-  function loadUser(n){
+  // reread — данные перечитаны из-за другой вкладки: переносить старую запись тогда незачем,
+  // иначе вкладка на старом коде теряла бы своё сохранение после каждого ответа
+  function loadUser(n,reread){
     let d={}, srs=null;
     try{const r=localStorage.getItem(udKey(n)); d=r?JSON.parse(r):{};}catch(e){d={};}
     try{const r=localStorage.getItem(srsKey(n)); srs=r?JSON.parse(r):null;}catch(e){srs=null;}
@@ -386,18 +388,21 @@
       moved=true;
     }
     if(moved) saveUser();
+    // короткая сессия, сохранённая до разделения на два места, переезжает к себе сразу,
+    // а не при первом чтении — иначе меню успело бы решить, что сохранённого повторения нет
+    if(!reread) loadSavedSession('main');
   }
-  let saveWarned=false;
+  let saveWarned=false, userSaveOk=true;
   function saveUser(){
     if(!user)return;
     try{
       localStorage.setItem(udKey(user.name),JSON.stringify({best:user.best,history:user.history}));
       localStorage.setItem(srsKey(user.name),JSON.stringify(user.srs));
       localStorage.setItem(CUR,user.name);
-      return true;
+      return userSaveOk=true;
     }catch(e){
       if(!saveWarned){saveWarned=true;alert('Прогресс не удаётся сохранить: память браузера недоступна или заполнена. Выгрузите историю в кабинете или удалите старых пользователей.');}
-      return false;
+      return userSaveOk=false;
     }
   }
   // последний ответ по каждому вопросу; повтор в той же сессии не в счёт — он идёт сразу после разбора
@@ -412,6 +417,8 @@
   // Но не раньше чем через ночь (MIN_GAP), иначе ошибка в 23:50 «повторялась бы завтра» через 20 минут.
   const MIN_GAP=8*3600000;
   function dayStart(t){const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();}
+  // не dayStart+DAY: в день перевода часов сутки длятся 23 или 25 часов
+  function nextDayStart(t){const d=new Date(t);d.setHours(24,0,0,0);return d.getTime();}
   function dueIn(days){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+days);return Math.max(d.getTime(),Date.now()+days*DAY/2);}
   // записи до этой версии (без set) — прежнее правило: доступны с момента due
   function dueAt(e){return e.set==null?e.due:Math.max(dayStart(e.due),e.set+MIN_GAP);}
@@ -427,7 +434,7 @@
   }
   function srsPending(){return Object.keys(user.srs).filter(id=>qLookup[id]&&user.srs[id].box<SRS_DONE);}
   function srsDue(){return srsPending().filter(id=>isDue(user.srs[id]));}
-  function srsNextDate(){const ds=srsPending().filter(id=>!isDue(user.srs[id])).map(id=>dueAt(user.srs[id]));return ds.length?Math.min(...ds):null;}
+  function srsNextDate(){const ds=srsPending().filter(id=>!isDue(user.srs[id])).map(id=>dueAt(user.srs[id])).filter(Number.isFinite);return ds.length?Math.min(...ds):null;}
   function fmtDay(t){const d=Math.round((dayStart(t)-dayStart(Date.now()))/DAY);return d<=0?'сегодня':d===1?'завтра':new Date(t).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});}
   // для ближайшего срока: «сегодня» без часа звучало бы как «уже можно»
   function fmtWhen(t){return dayStart(t)<=dayStart(Date.now())?'сегодня в '+new Date(t).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):fmtDay(t);}
@@ -658,8 +665,47 @@
     return it;
   }
 
+  // Вкладку на телефоне днями не перезагружают, а сроки повторения и конец дня для списка ошибок
+  // наступают, пока меню или кабинет уже нарисованы. Поэтому они перерисовываются при возвращении
+  // во вкладку и по таймеру к ближайшему сроку — иначе утром не было бы кнопки «Повторение на сегодня»
+  let viewTimer=null, viewAt=0;
+  function scheduleRefresh(){
+    clearTimeout(viewTimer); if(!user)return;
+    const nx=srsNextDate(); viewAt=nextDayStart(Date.now()); if(nx!=null&&nx<viewAt)viewAt=nx;
+    // шаг не длиннее 15 минут: во сне ноутбука таймеры стоят, и один длинный опоздал бы на время сна
+    viewTimer=setTimeout(()=>{if(Date.now()>=viewAt)refreshView();else scheduleRefresh();},
+      Math.min(Math.max(1000,viewAt-Date.now()+1000),15*60000));
+  }
+  function refreshView(){
+    if(document.hidden||!user)return;
+    if(dash.style.display==='block'){renderDash();return;}
+    if(menu.style.display!=='block')return;
+    const ae=document.activeElement, fi=[...grid.children].indexOf(ae);
+    renderMenu();
+    if(fi>=0&&grid.children[fi]) grid.children[fi].focus({preventScroll:true});
+    else if(ae&&ae!==document.body&&menu.contains(ae)&&!ae.offsetParent) focusMenu();
+  }
+  document.addEventListener('visibilitychange',refreshView);
+  // из кэша «назад/вперёд» страница возвращается замороженной: события storage за это время не пришли,
+  // и старая копия данных при следующем ответе затёрла бы ответы, данные в другой вкладке
+  window.addEventListener('pageshow',e=>{
+    if(!e.persisted||!user)return;
+    loadUser(user.name,true);
+    if(session&&!session.finished&&quizEl.style.display==='block'&&sessionSaved){
+      const d=loadSavedSession(slotOf(session.key)), n=a=>a.filter(x=>x!=null).length;
+      if(!d||d.key!==session.key||n(d.answers)>n(session.answers)){
+        session.finished=true; sessionSaved=false;
+        show('menu'); window.scrollTo({top:0});
+        sayText($('menuNote'),'Прохождение продолжено, завершено или заменено в другой вкладке.');
+        return;
+      }
+    }
+    refreshView();
+  });
+
   // Build chapter cards
   function renderMenu(){
+    scheduleRefresh();
     grid.innerHTML='';
     const tb=$('reviewTodayBtn'), due=user?srsDue().length:0;
     const sideNow=user?loadSavedSession('side'):null;
@@ -673,7 +719,7 @@
         rb.textContent='▶ Продолжить: '+saved.title+' — отвечено '+done+' из '+saved.total;
       }
     });
-    // работа над ошибками последнего прохождения доступна и после ухода с экрана итогов — до конца дня
+    // список ошибок и угаданных за сегодня доступен и после ухода с экрана итогов — до конца дня;
     // пока работа над ошибками сохранена как прохождение, её продолжают через «Продолжить», а не заново
     const sideSaved=user?loadSavedSession('side'):null;
     const fx=user&&!(sideSaved&&sideSaved.key==='__fix')?loadFix():null, fm=$('fixMenuBtn');
@@ -790,26 +836,30 @@
   }
   // работа над ошибками: только ошибки и угаданные прошедшего прохождения; ответы в ней не засчитываются
   // в освоение и не продвигают очередь повторения — настоящая проверка будет завтра, в «Повторении»
-  // список ошибок последнего прохождения хранится до конца дня: кнопка есть и в меню, если ученик ушёл с итогов;
-  // утром эти вопросы уже в «Повторении», и тренироваться на них перед зачётной проверкой не нужно
+  // список ошибок и угаданных за сегодня: каждая сессия убирает из него заданные ею вопросы и добавляет
+  // свои ошибки. Он хранится до конца дня, кнопка есть и в меню; утром эти вопросы уже в «Повторении»,
+  // и тренироваться на них перед зачётной проверкой не нужно
   function fixKey(){return 'bio_fix_'+user.name;}
+  // подпись главы — только если все вопросы списка из неё
+  function fixBase(ids){const chs=new Set(ids.map(id=>qLookup[id].ch));return chs.size===1?QUIZ[[...chs][0]].title:'';}
   function loadFix(){
     let d=null; try{d=JSON.parse(localStorage.getItem(fixKey())||'null');}catch(e){d=null;}
-    if(!d||!Array.isArray(d.ids)||Date.now()>=dayStart(d.t)+DAY)return null;
+    if(!d||!Array.isArray(d.ids)||Date.now()>=nextDayStart(d.t))return null;
     d.ids=d.ids.filter(id=>qLookup[id]); return d.ids.length?d:null;
   }
   function clearFix(){try{localStorage.removeItem(fixKey());}catch(e){}}
   function startFix(fromMenu){
     const prev=session, stored=fromMenu===true?loadFix():null;
-    if(fromMenu===true&&!stored){
-      renderMenu(); focusMenu(); sayText($('menuNote'),'Список ошибок устарел — эти вопросы ждут в «Повторении».'); return;
+    // экран итогов мог провисеть открытым через полночь — вчерашние ошибки уже в «Повторении»
+    const stale=fromMenu===true?!stored:!!(prev&&prev.finishedAt&&Date.now()>=nextDayStart(prev.finishedAt));
+    if(stale){
+      show('menu'); focusMenu(); sayText($('menuNote'),'Список ошибок устарел — эти вопросы ждут в «Повторении».'); return;
     }
     const ids=(stored?stored.ids:((prev&&prev.fixIds)||[])).filter(id=>qLookup[id]);
     if(!ids.length||!okToReplace('__fix','🎯 Работа над ошибками'))return;
     const raws=ids.map(id=>qLookup[id].raw);
-    // название главы переходит и во вторую «работу над ошибками» подряд
-    const base=stored?(stored.base||''):prev.key==='__fix'?(prev.base||''):(prev.key.slice(0,2)==='ch'?prev.title:'');
-    // список не стираем здесь: его перезапишет или удалит итог самой работы над ошибками,
+    const base=fixBase(ids);
+    // список не стираем здесь: итог работы над ошибками уберёт из него заданные вопросы и добавит новые ошибки,
     // а если выйти, не ответив, он останется в меню
     session=makeSession('__fix','🎯 Работа над ошибками'+(base?' — '+base:''),raws,raws.length);
     session.practice=true; session.base=base;
@@ -859,7 +909,7 @@
       return false;
     });
     if(!milestone) maybeFocus();
-    qNext.className='next';
+    qNext.className='next'; qNext.setAttribute('aria-disabled','true');
     qNext.textContent=(s.idx===s.total-1)?'Показать результат →':'Далее →';
     renderConf();
 
@@ -989,7 +1039,7 @@
     $('qLive').textContent=qExplain.textContent.replace(/^[✓✗]\s*/,'');
     qExplain.scrollIntoView({behavior:'smooth',block:'nearest'});
     qScore.textContent=liveScore();
-    qNext.className='next ready';
+    qNext.className='next ready'; qNext.removeAttribute('aria-disabled');
     // «Проверить» скрыт, в упорядочивании кнопки отключены — фокус не должен остаться на пропавшем элементе
     const ae=document.activeElement;
     if(!ae||ae===document.body||ae.disabled||!ae.offsetParent) qNext.focus({preventScroll:true});
@@ -1260,11 +1310,15 @@
     const wrongIds=new Set(first.filter(x=>!x.a).map(x=>s.questions[x.i].id).filter(id=>qLookup[id]));
     const nWrong=wrongIds.size, nGuess=fixIds.length-nWrong;
     s.fixIds=fixIds;
+    // каждая сессия обновляет список ошибок за день: убирает заданные ею вопросы и добавляет свои ошибки
+    // и угаданные — иначе прохождение без ошибок стирало бы ещё не отработанные ошибки другой главы или повторения.
+    // На итогах кнопка берёт только ошибки этой сессии, в меню — весь список за день
+    s.finishedAt=Date.now();
     if(user){
-      if(fixIds.length){
-        const base=s.key==='__fix'?(s.base||''):(s.key.slice(0,2)==='ch'?s.title:'');
-        try{localStorage.setItem(fixKey(),JSON.stringify({ids:fixIds,base,t:Date.now()}));}catch(e){}
-      } else clearFix();
+      const old=loadFix(), asked=new Set(s.questions.map(q=>q.id));
+      const ids=[...new Set([...(old?old.ids.filter(id=>!asked.has(id)):[]),...fixIds])];
+      if(ids.length){try{localStorage.setItem(fixKey(),JSON.stringify({ids,base:fixBase(ids),t:Date.now()}));}catch(e){}}
+      else clearFix();
     }
     const fb=$('fixBtn'), rt=$('retryBtn'), dueNow=user?srsDue().length:0;
     fb.style.display=fixIds.length?'':'none';
@@ -1370,6 +1424,7 @@
 
   // ---- Dashboard (личный кабинет) ----
   function renderDash(){
+    scheduleRefresh();
     $('userName').textContent=user.name;
     const total=user.history.length;
     // точность — по первым попыткам: повтор сразу после разбора её бы завышал;
@@ -1578,7 +1633,9 @@
   // спрашиваем, только если сохранить не удалось (память браузера недоступна)
   $('quitBtn').onclick=()=>{
     const s=session, inProgress=s&&s.answers.length>0&&s.answers.length<s.total;
-    if(inProgress&&!sessionSaved&&!confirm('Выйти к списку глав? Ответы сохранятся в истории, но итог и разбор этого прохождения не появятся.'))return;
+    // прохождение могло не записаться, а история — записаться: оно намного больше. Если не пишется и история, говорим прямо
+    if(inProgress&&!sessionSaved&&!confirm(userSaveOk?'Выйти к списку глав? Ответы сохранятся в истории, но итог и разбор этого прохождения не появятся.'
+      :'Сохранить прогресс не удаётся: ответы этого прохождения пропадут, когда страница закроется. Выйти к списку глав?'))return;
     window.scrollTo({top:0}); show('menu'); focusMenu();
   };
   $('resumeBtn').onclick=()=>resumeSession('main');
@@ -1633,7 +1690,7 @@
     }
     if(e.key===fixKey()){ if(menu.style.display==='block') renderMenu(); return; }
     if(e.key!==udKey(user.name)&&e.key!==srsKey(user.name))return;
-    loadUser(user.name);
+    loadUser(user.name,true);
     if(menu.style.display==='block') renderMenu();
     else if(dash.style.display==='block') renderDash();
   });
