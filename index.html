@@ -41,6 +41,7 @@
   .chapter .meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:var(--muted)}
   .best{background:rgba(47,191,113,.15);color:var(--green);padding:3px 8px;border-radius:20px;font-weight:600}
   .best.none{background:rgba(147,164,181,.12);color:var(--muted)}
+  .best.part{background:rgba(240,180,41,.13);color:var(--amber)}
 
   .cta{
     display:block;width:100%;text-align:center;margin:22px 0 6px;padding:15px;
@@ -307,10 +308,11 @@
     <div class="rsum2" id="rStats"></div>
     <div class="support" id="rSupport" style="text-align:left"></div>
     <div class="achv" id="rAchv" style="justify-content:center"></div>
+    <button class="cta" id="fixBtn" style="display:none"></button>
     <button class="cta" id="retryBtn">↻ Пройти заново</button>
     <button class="cta secondary" id="homeBtn">← К списку глав</button>
     <div class="review" id="review"></div>
-    <footer>Разбор ошибок помогает закрепить материал — перечитайте пояснения к тем вопросам, где ошиблись.</footer>
+    <footer>Вопросы с ошибками и угаданные уже в очереди повторения: они вернутся завтра, затем через 3, 7 и 21 день.</footer>
   </section>
 
   <!-- Dashboard -->
@@ -426,13 +428,17 @@
     const meta=qLookup[curItem.id];
     const rec={t:Date.now(), id:curItem.id, ch:meta?meta.ch:session.key, correct:!!correct};
     if(!meta) rec.q=curItem.q;
-    if(curItem.retry) rec.retry=true;
+    // работа над ошибками идёт сразу после разбора — ответ ещё в рабочей памяти: как и повтор в сессии,
+    // он не входит ни в точность, ни в освоение и не продвигает вопрос в очереди (ошибка же ставит его на завтра)
+    const again=!!curItem.retry||!!session.practice;
+    if(again) rec.retry=true;
     if(curItem.conf) rec.conf=curItem.conf;
     // в повторение попадают только трудные вопросы — в общую точность такие ответы не берём
     if(session.key==='__review') rec.mode='review';
+    if(session.practice) rec.mode='practice';
     user.history.push(rec);
     if(user.history.length>3000)user.history=user.history.slice(-3000);
-    srsUpdate(curItem.id,!!correct,!!curItem.retry,curItem.conf);
+    srsUpdate(curItem.id,!!correct,again,curItem.conf);
     saveUser();
   }
   const LETTERS=['А','Б','В','Г','Д','Е'];
@@ -450,7 +456,7 @@
   // Глава — 50-70 вопросов, и на телефоне вкладку часто выгружают или закрывают жестом «назад».
   // Прохождение пишется после каждого ответа, чтобы его можно было продолжить, а не начинать заново.
   const SESS_FIELDS=['key','title','idx','total','answers','wrongStreak','rightStreak','target','topicCount',
-    'shown','earned','topicHits','focusShown','hadDoubleMiss','lastFlowAt'];
+    'shown','earned','topicHits','focusShown','hadDoubleMiss','lastFlowAt','practice','base'];
   function sessKey(){return 'bio_session_'+user.name;}
   let sessionSaved=false;
   function persistSession(){
@@ -616,20 +622,26 @@
       const done=saved.answers.filter(a=>a!=null).length;
       rb.textContent='▶ Продолжить: '+saved.title+' — отвечено '+done+' из '+saved.total;
     }
+    // на карточке — освоение, а не лучший процент: сразу повторённая глава даёт высокий процент за счёт
+    // узнавания только что виденных вариантов, а освоение растёт лишь от верных ответов, выдержавших паузу
+    const latest=user?latestByQ():{};
     Object.keys(QUIZ).forEach(key=>{
-      const ch=QUIZ[key], best=user?user.best[key]:null;
+      const ch=QUIZ[key], n=ch.questions.length;
+      let attempted=0, mastered=0;
+      ch.questions.forEach(raw=>{const h=latest[raw.id]; if(h){attempted++; if(masteredBy(h))mastered++;}});
       const card=document.createElement('div');
       card.className='chapter';
       // карточка — не <button> (внутри заголовок и блоки), поэтому роль и клавиши задаём сами
       card.tabIndex=0; card.setAttribute('role','button');
-      card.setAttribute('aria-label',ch.title+', '+ch.questions.length+' вопросов, '+(best!=null?'лучший результат '+best+'%':'не пройдено'));
+      card.setAttribute('aria-label',ch.title+', '+n+' вопросов, '+(attempted?'освоено '+mastered+' из '+n:'не начата'));
       card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();startQuiz(key);}};
       card.innerHTML=
         '<div class="ic">'+ch.icon+'</div>'+
         '<h3>'+esc(ch.title)+'</h3>'+
         '<div class="d">'+esc(ch.desc)+'</div>'+
-        '<div class="meta"><span>'+ch.questions.length+' вопросов</span>'+
-        (best!=null?'<span class="best">Лучший: '+best+'%</span>':'<span class="best none">Не пройдено</span>')+
+        '<div class="meta"><span>'+n+' вопросов</span>'+
+        (attempted?'<span class="best'+(mastered/n>=0.7?'':' part')+'" title="Последний ответ верен, не угадан и не ждёт повторения после ошибки">Освоено '+mastered+' из '+n+'</span>'
+          :'<span class="best none">Не начата</span>')+
         '</div>';
       card.onclick=()=>startQuiz(key);
       grid.appendChild(card);
@@ -717,6 +729,18 @@
     const ch=QUIZ[key];
     session=makeSession(key, ch.title, ch.questions, ch.questions.length);
     beginSession(key,'chapterStart');
+  }
+  // работа над ошибками: только ошибки и угаданные прошедшего прохождения; ответы в ней не засчитываются
+  // в освоение и не продвигают очередь повторения — настоящая проверка будет завтра, в «Повторении»
+  function startFix(){
+    const prev=session, ids=((prev&&prev.fixIds)||[]).filter(id=>qLookup[id]);
+    if(!ids.length||!okToReplace())return;
+    const raws=ids.map(id=>qLookup[id].raw);
+    // название главы переходит и во вторую «работу над ошибками» подряд
+    const base=prev.key==='__fix'?(prev.base||''):(prev.key.slice(0,2)==='ch'?prev.title:'');
+    session=makeSession('__fix','🎯 Работа над ошибками'+(base?' — '+base:''),raws,raws.length);
+    session.practice=true; session.base=base;
+    beginSession(null,'fixStart');
   }
   function startMixed(){
     if(!okToReplace())return;
@@ -1147,9 +1171,24 @@
     $('rStats').innerHTML=lines.map(esc).join('<br>');
 
     say($('rSupport'),'chapterComplete');
-    // после повторения кнопка берёт следующую порцию на сегодня, а если её нет — прячется
-    if(s.key==='__review'){const d=srsDue().length; $('retryBtn').textContent='🔁 Ещё '+Math.min(d,REVIEW_MAX)+' на сегодня'; $('retryBtn').style.display=d?'':'none';}
-    else {$('retryBtn').textContent='↻ Пройти заново'; $('retryBtn').style.display='';}
+    // главное действие после итогов — добрать ошибки и угаданные, а не пройти всё заново:
+    // повторное прохождение сразу после разбора проверяет узнавание вариантов, а не память
+    const fixIds=[...new Set(first.filter(x=>!x.a||s.questions[x.i].conf==='guess').map(x=>s.questions[x.i].id))].filter(id=>qLookup[id]);
+    const nWrong=first.filter(x=>!x.a).length, nGuess=fixIds.length-new Set(first.filter(x=>!x.a).map(x=>s.questions[x.i].id)).size;
+    s.fixIds=fixIds;
+    const fb=$('fixBtn'), rt=$('retryBtn');
+    fb.style.display=fixIds.length?'':'none';
+    fb.textContent='🎯 Повторить '+(nWrong&&nGuess?'ошибки и угаданные':nWrong?'ошибки':'угаданные')+' ('+fixIds.length+')';
+    if(s.key==='__review'){
+      // после повторения главная кнопка берёт следующую порцию на сегодня, а если её нет — прячется
+      const d=srsDue().length; rt.textContent='🔁 Ещё '+Math.min(d,REVIEW_MAX)+' на сегодня'; rt.style.display=d?'':'none';
+      rt.className='cta'; fb.className='cta'+(d?' secondary':'');
+    } else if(s.key==='__fix'){
+      rt.style.display='none'; fb.className='cta';
+    } else {
+      rt.textContent=s.key==='__mixed'?'🎲 Новый смешанный тест':'↻ Пройти главу заново'; rt.style.display='';
+      rt.className='cta'+(fixIds.length?' secondary':''); fb.className='cta';
+    }
     if(s.key.slice(0,2)==='ch') award('complete');
     const rb=$('rAchv'); rb.innerHTML='';
     Object.values(s.earned).forEach(l=>{const c=document.createElement('span');c.className='chip';c.textContent='✓ '+l;rb.appendChild(c);});
@@ -1364,7 +1403,7 @@
     const CL={sure:'уверен',unsure:'сомневаюсь',guess:'угадываю'};
     const rows=[['datetime','chapter','session','result','attempt','confidence','question']];
     user.history.forEach(h=>{
-      rows.push([new Date(h.t).toISOString(), QUIZ[h.ch]?QUIZ[h.ch].title:h.ch, h.mode==='review'?'повторение':'тест', h.correct?'верно':'ошибка', h.retry?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
+      rows.push([new Date(h.t).toISOString(), QUIZ[h.ch]?QUIZ[h.ch].title:h.ch, h.mode==='review'?'повторение':h.mode==='practice'?'работа над ошибками':'тест', h.correct?'верно':'ошибка', h.retry?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
     });
     const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
     download('bio-istoriya-'+safe(user.name)+'-'+dstamp()+'.csv', '﻿'+csv, 'text/csv;charset=utf-8');
@@ -1401,10 +1440,12 @@
   $('resumeBtn').onclick=resumeSession;
   $('homeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');focusMenu();};
   $('retryBtn').onclick=()=>{
+    if(!session||session.key==='__fix')return;
     if(session.key==='__mixed') startMixed();
     else if(session.key==='__review') startReview();
     else {startQuiz(session.key); say($('flowSupport'),'retry');}
   };
+  $('fixBtn').onclick=startFix;
   $('dashBtn').onclick=()=>{window.scrollTo({top:0});show('dash');};
   $('dashHomeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');focusMenu();};
   $('reviewBtn').onclick=startReview;
