@@ -31,7 +31,10 @@
     border:1px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;
     transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;position:relative;overflow:hidden;
   }
-  .chapter:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:var(--shadow)}
+  /* на сенсорных экранах :hover «залипает» после касания — эффекты наведения только там, где есть мышь */
+  @media(hover:hover){.chapter:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:var(--shadow)}}
+  .chapter:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   .chapter .ic{font-size:30px;line-height:1}
   .chapter h3{margin:10px 0 4px;font-size:16px}
   .chapter .d{color:var(--muted);font-size:13px;min-height:34px}
@@ -65,7 +68,8 @@
     text-align:left;background:var(--bg2);border:1.5px solid var(--line);border-radius:12px;
     padding:13px 15px;color:var(--ink);font-size:15px;cursor:pointer;transition:all .12s ease;display:flex;gap:10px;align-items:flex-start
   }
-  .opt:hover:not(.locked){border-color:var(--accent);background:#1a2735}
+  /* наведение — только рамка и только с мышью: иначе снятый в multi вариант выглядел бы отмеченным */
+  @media(hover:hover){.opt:hover:not(.locked){border-color:var(--accent)}}
   .opt .mark{flex:0 0 22px;height:22px;border-radius:50%;border:2px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;margin-top:1px}
   .opt.correct{border-color:var(--green);background:rgba(47,191,113,.14)}
   .opt.correct .mark{border-color:var(--green);background:var(--green);color:#08210f}
@@ -96,6 +100,8 @@
   .opt.wrong .box{border-color:var(--red);background:var(--red);color:#2a0b09}
   .opt.miss{border-color:var(--green);border-style:dashed}
   .opt.miss .box{border-color:var(--green);border-style:dashed}
+  .opt .misslbl{display:block;margin-top:3px;font-size:12px;color:var(--green)}
+  .opt>span:not(.box):not(.mark){min-width:0;overflow-wrap:anywhere}
   /* Matching rows */
   .matchrow{display:flex;gap:10px;align-items:center;margin-bottom:10px}
   .matchrow .ml{flex:0 0 42%;background:var(--bg2);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14.5px;font-weight:600}
@@ -106,14 +112,17 @@
   .matchrow.ok .ml{border-color:var(--green)} .matchrow.ok select{border-color:var(--green);background:rgba(47,191,113,.12)}
   .matchrow.bad .ml{border-color:var(--red)} .matchrow.bad select{border-color:var(--red);background:rgba(229,83,75,.12)}
   .matchrow .fix{display:block;font-size:12.5px;color:var(--green);margin-top:5px}
+  .matchrow .mpicked{display:block;font-size:12.5px;color:var(--muted);margin-top:5px}
+  .matchrow .mpicked:empty{display:none}
+  #qText:focus,#rVerdict:focus{outline:none}
   /* Ordering list */
   .orderitem{display:flex;gap:10px;align-items:center;background:var(--bg2);border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:8px}
   .orderitem .num{flex:0 0 24px;height:24px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted)}
   .orderitem .otext{flex:1;font-size:14.5px}
   .orderitem .ctrl{display:flex;flex-direction:column;gap:3px}
   .orderitem .ctrl button{width:30px;height:20px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;cursor:pointer;font-size:10px;line-height:1;padding:0}
-  .orderitem .ctrl button:hover:not(:disabled){border-color:var(--accent)}
-  .orderitem .ctrl button:disabled{opacity:.3;cursor:default}
+  .orderitem .ctrl button:hover:not(:disabled):not([aria-disabled="true"]){border-color:var(--accent)}
+  .orderitem .ctrl button:disabled,.orderitem .ctrl button[aria-disabled="true"]{opacity:.3;cursor:default}
   .orderitem.ok{border-color:var(--green);background:rgba(47,191,113,.1)} .orderitem.ok .num{border-color:var(--green);color:var(--green);background:var(--green);color:#08210f}
   .orderitem.bad{border-color:var(--red);background:rgba(229,83,75,.1)}
   .orderfix{margin-top:10px;font-size:13.5px;line-height:1.7;color:var(--muted)}
@@ -242,6 +251,8 @@
 
   <!-- Chapter selection -->
   <section id="menu">
+    <div class="support" id="menuNote"></div>
+    <button class="cta" id="resumeBtn" style="display:none"></button>
     <button class="cta" id="reviewTodayBtn" style="display:none"></button>
     <button class="cta" id="mixedBtn">🎲 Смешанный тест — 15 случайных вопросов из всех глав</button>
     <div class="grid" id="grid"></div>
@@ -264,7 +275,7 @@
     <div class="achv" id="achvLive"></div>
     <div class="card">
       <span class="qbadge" id="qBadge"></span>
-      <p class="qtext" id="qText"></p>
+      <p class="qtext" id="qText" tabindex="-1" aria-describedby="qCount qBadge qHint"></p>
       <div class="qhint" id="qHint"></div>
       <div class="conf" id="qConf"></div>
       <div class="opts" id="qOpts"></div>
@@ -277,6 +288,8 @@
       </div>
     </div>
     <button class="cta secondary" id="quitBtn" style="margin-top:16px">← Выйти к списку глав</button>
+    <!-- результат ответа и перестановки в упорядочивании — для скринридера; вне qOpts, который пересоздаётся -->
+    <div id="qLive" class="sr-only" role="status" aria-live="polite"></div>
   </section>
 
   <!-- Results -->
@@ -289,7 +302,7 @@
       </svg>
       <div class="pct"><b id="rPct">0%</b><span id="rFrac"></span></div>
     </div>
-    <div class="verdict" id="rVerdict"></div>
+    <div class="verdict" id="rVerdict" tabindex="-1" aria-describedby="rPct rFrac rSum"></div>
     <div class="rsum" id="rSum"></div>
     <div class="rsum2" id="rStats"></div>
     <div class="support" id="rSupport" style="text-align:left"></div>
@@ -331,6 +344,9 @@
         login=$('login'), dash=$('dash'), userbar=$('userbar');
   const qOpts=$('qOpts'), qCheck=$('qCheck'), qExplain=$('qExplain'), qNext=$('qNext'),
         qScore=$('qScore'), qBadge=$('qBadge'), qHint=$('qHint'), qText=$('qText');
+  // возврат в меню идёт через history.back(): без 'manual' браузер вернул бы старую прокрутку
+  // поверх явного scrollTo, и кнопка «Продолжить» наверху меню оказалась бы за экраном
+  try{ if('scrollRestoration' in history) history.scrollRestoration='manual'; }catch(e){}
 
   // ---- User accounts (username only, stored per-device) ----
   const CUR='bio_current_user';
@@ -378,22 +394,32 @@
   // (3, 7, 21 день), после четвёртого вопрос считается усвоенным. Верный ответ раньше срока или при повторе
   // в той же сессии не продвигает вопрос: он ещё в рабочей памяти и об усвоении не говорит.
   const DAY=86400000, SRS_DAYS=[1,3,7,21], SRS_DONE=SRS_DAYS.length;
+  // срок — календарный день, а не час ошибки: ошибка вечером доступна для повторения уже утром.
+  // Но не раньше чем через ночь (MIN_GAP), иначе ошибка в 23:50 «повторялась бы завтра» через 20 минут.
+  const MIN_GAP=8*3600000;
   function dayStart(t){const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();}
   function dueIn(days){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+days);return Math.max(d.getTime(),Date.now()+days*DAY/2);}
+  // записи до этой версии (без set) — прежнее правило: доступны с момента due
+  function dueAt(e){return e.set==null?e.due:Math.max(dayStart(e.due),e.set+MIN_GAP);}
+  function isDue(e){return !!e&&e.due!=null&&Date.now()>=dueAt(e);}
   function srsUpdate(id,correct,retry,conf){
     if(!user||!qLookup[id])return;
-    const e=user.srs[id];
-    if(!correct){user.srs[id]={box:0,due:dueIn(1)};return;}
+    const e=user.srs[id], now=Date.now();
+    if(!correct){user.srs[id]={box:0,due:dueIn(1),set:now};return;}
     if(retry)return;
-    if(conf==='guess'){if(!e||e.box>=SRS_DONE)user.srs[id]={box:0,due:dueIn(1)};else e.due=Math.max(e.due,dueIn(1));return;}
-    if(!e||e.box>=SRS_DONE||Date.now()<e.due)return;
-    e.box++; e.due=e.box>=SRS_DONE?null:dueIn(SRS_DAYS[e.box]);
+    if(conf==='guess'){if(!e||e.box>=SRS_DONE)user.srs[id]={box:0,due:dueIn(1),set:now};else{e.due=Math.max(e.due,dueIn(1));e.set=now;}return;}
+    if(!e||e.box>=SRS_DONE||!isDue(e))return;
+    e.box++; e.due=e.box>=SRS_DONE?null:dueIn(SRS_DAYS[e.box]); e.set=now;
   }
   function srsPending(){return Object.keys(user.srs).filter(id=>qLookup[id]&&user.srs[id].box<SRS_DONE);}
-  function srsDue(){const now=Date.now();return srsPending().filter(id=>user.srs[id].due<=now);}
-  function srsNextDate(){const ds=srsPending().map(id=>user.srs[id].due).filter(d=>d>Date.now());return ds.length?Math.min(...ds):null;}
+  function srsDue(){return srsPending().filter(id=>isDue(user.srs[id]));}
+  function srsNextDate(){const ds=srsPending().filter(id=>!isDue(user.srs[id])).map(id=>dueAt(user.srs[id]));return ds.length?Math.min(...ds):null;}
   function fmtDay(t){const d=Math.round((dayStart(t)-dayStart(Date.now()))/DAY);return d<=0?'сегодня':d===1?'завтра':new Date(t).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});}
+  // для ближайшего срока: «сегодня» без часа звучало бы как «уже можно»
+  function fmtWhen(t){return dayStart(t)<=dayStart(Date.now())?'сегодня в '+new Date(t).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):fmtDay(t);}
   // «ошибки для проработки» — всё, что ещё в очереди повторения, а не только последний неверный ответ
+  // вопрос освоен, если последний ответ верен, не угадан и вопрос не ждёт первого повторения после ошибки
+  function masteredBy(h){const e=user.srs[h.id];return h.correct&&h.conf!=='guess'&&!(e&&e.box===0);}
   function currentMistakes(){return srsPending().map(id=>({id,ch:qLookup[id].ch}));}
   function recordAnswer(correct){
     if(!user)return;
@@ -402,6 +428,8 @@
     if(!meta) rec.q=curItem.q;
     if(curItem.retry) rec.retry=true;
     if(curItem.conf) rec.conf=curItem.conf;
+    // в повторение попадают только трудные вопросы — в общую точность такие ответы не берём
+    if(session.key==='__review') rec.mode='review';
     user.history.push(rec);
     if(user.history.length>3000)user.history=user.history.slice(-3000);
     srsUpdate(curItem.id,!!correct,!!curItem.retry,curItem.conf);
@@ -411,12 +439,71 @@
   const BADGE={single:'Один ответ',multi:'Несколько ответов',match:'Сопоставление',order:'Упорядочивание',truefalse:'Верно / Неверно',twotier:'Ответ + обоснование'};
   const HINT={
     multi:'Выберите все верные варианты, затем нажмите «Проверить».',
-    match:'Для каждого пункта слева выберите подходящий вариант справа.',
+    match:'Для каждого пункта выберите подходящий вариант из списка.',
     order:'Расставьте по порядку кнопками ▲ ▼, затем нажмите «Проверить».',
     twotier:'Сначала выберите ответ. Если он верен — потребуется объяснить, почему вы так решили; засчитывается только при верных обоих шагах.'
   };
 
   let session=null, curItem=null;
+
+  // ---- Сохранение прохождения ----
+  // Глава — 50-70 вопросов, и на телефоне вкладку часто выгружают или закрывают жестом «назад».
+  // Прохождение пишется после каждого ответа, чтобы его можно было продолжить, а не начинать заново.
+  const SESS_FIELDS=['key','title','idx','total','answers','wrongStreak','rightStreak','target','topicCount',
+    'shown','earned','topicHits','focusShown','hadDoubleMiss','lastFlowAt'];
+  function sessKey(){return 'bio_session_'+user.name;}
+  let sessionSaved=false;
+  function persistSession(){
+    const s=session; if(!user||!s||s.finished)return;
+    const d={v:1};
+    SESS_FIELDS.forEach(k=>{d[k]=s[k];});
+    d.pool=s.pool.map(q=>q.id);
+    d.later=s.later.map(l=>({id:l.id,due:l.due,first:l.first}));
+    d.questions=s.questions;
+    try{localStorage.setItem(sessKey(),JSON.stringify(d));sessionSaved=true;}catch(e){sessionSaved=false;}
+  }
+  function clearSavedSession(){sessionSaved=false;if(!user)return;try{localStorage.removeItem(sessKey());}catch(e){}}
+  function loadSavedSession(){
+    if(!user)return null;
+    let d=null; try{const r=localStorage.getItem(sessKey()); d=r?JSON.parse(r):null;}catch(e){d=null;}
+    if(!d||d.v!==1||!Array.isArray(d.questions)||!Array.isArray(d.answers)||!Array.isArray(d.pool))return null;
+    return d;
+  }
+  function resumeSession(){
+    const d=loadSavedSession(); if(!d){renderMenu();return;}
+    const rawOf=id=>qLookup[id]&&qLookup[id].raw;
+    const s=makeSession(d.key,d.title,[],0);
+    SESS_FIELDS.forEach(k=>{if(d[k]!==undefined)s[k]=d[k];});
+    s.pool=d.pool.map(rawOf).filter(Boolean);
+    s.later=(d.later||[]).filter(l=>rawOf(l.id)).map(l=>({id:l.id,raw:rawOf(l.id),due:l.due,first:l.first}));
+    s.questions=d.questions.slice(0,s.idx+1);
+    // неотвеченный текущий вопрос собираем заново — по нынешнему тексту банка; удалённый из банка пропускаем
+    const cur=s.questions[s.idx];
+    if(cur&&s.answers[s.idx]==null){
+      const raw=rawOf(cur.id);
+      if(raw){const it=prep(raw); if(cur.retry){it.retry=true;it.first=cur.first;} s.questions[s.idx]=it;}
+      else s.questions.length=s.idx;
+    }
+    s.total=s.idx+(s.questions[s.idx]?1:0)+s.pool.length+s.later.length;
+    session=s;
+    // ответ уже дан, но «Далее» не нажато — сразу к следующему
+    if(s.answers[s.idx]!=null){
+      if(s.idx>=s.total-1){finish();return;}
+      s.idx++;
+    }
+    clearSay($('menuNote'));
+    show('quiz'); showHook(null);
+    s.lastFlowAt=s.idx; sayText($('flowSupport'),'Продолжаем с того места, где остановились.');
+    renderQuestion(); window.scrollTo({top:0});
+    qText.focus({preventScroll:true});
+    persistSession();
+  }
+  // новое прохождение заменяет сохранённое — спросить, если там уже есть ответы
+  function okToReplace(){
+    const d=loadSavedSession(); if(!d)return true;
+    const n=d.answers.filter(a=>a!=null).length; if(!n)return true;
+    return confirm('Незавершённое прохождение «'+d.title+'» (отвечено '+n+' из '+d.total+') будет заменено новым. Начать заново?');
+  }
 
   function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
 
@@ -484,6 +571,11 @@
     return false;
   }
   function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+  // результат на вариантах виден цветом — для скринридера дописываем его словами
+  function addSr(el,t){const s=document.createElement('span');s.className='sr-only';s.textContent=t;el.appendChild(s);}
+  function markSr(btns,items,picked){
+    btns.forEach((b,k)=>{if(items[k].ok)addSr(b,k===picked?' — ваш ответ, верно':' — верный ответ');else if(k===picked)addSr(b,' — ваш ответ, неверно');});
+  }
 
   // Normalise a raw question into a runtime item (with shuffling + embedded correctness)
   function prep(q){
@@ -518,10 +610,20 @@
     const tb=$('reviewTodayBtn'), due=user?srsDue().length:0;
     tb.style.display=due?'':'none';
     tb.textContent='🔁 Повторение на сегодня — '+Math.min(due,REVIEW_MAX)+' вопр.';
+    const rb=$('resumeBtn'), saved=loadSavedSession();
+    rb.style.display=saved?'':'none';
+    if(saved){
+      const done=saved.answers.filter(a=>a!=null).length;
+      rb.textContent='▶ Продолжить: '+saved.title+' — отвечено '+done+' из '+saved.total;
+    }
     Object.keys(QUIZ).forEach(key=>{
       const ch=QUIZ[key], best=user?user.best[key]:null;
       const card=document.createElement('div');
       card.className='chapter';
+      // карточка — не <button> (внутри заголовок и блоки), поэтому роль и клавиши задаём сами
+      card.tabIndex=0; card.setAttribute('role','button');
+      card.setAttribute('aria-label',ch.title+', '+ch.questions.length+' вопросов, '+(best!=null?'лучший результат '+best+'%':'не пройдено'));
+      card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();startQuiz(key);}};
       card.innerHTML=
         '<div class="ic">'+ch.icon+'</div>'+
         '<h3>'+esc(ch.title)+'</h3>'+
@@ -601,14 +703,25 @@
     return out;
   }
 
+  // стартовая реплика ставится до первого вопроса и отмечает паузу: иначе она затирала бы
+  // настройку перед трудной темой, показанную на первом вопросе, и та пропадала бы за всё прохождение
+  function beginSession(chKey,startKey){
+    clearSavedSession(); clearSay($('menuNote'));
+    show('quiz'); showHook(chKey);
+    session.lastFlowAt=0; say($('flowSupport'),startKey);
+    renderQuestion(); window.scrollTo({top:0});
+    qText.focus({preventScroll:true});
+  }
   function startQuiz(key){
+    if(!okToReplace())return;
     const ch=QUIZ[key];
     session=makeSession(key, ch.title, ch.questions, ch.questions.length);
-    show('quiz'); showHook(key); renderQuestion(); say($('flowSupport'),'chapterStart');
+    beginSession(key,'chapterStart');
   }
   function startMixed(){
+    if(!okToReplace())return;
     session=makeSession('__mixed','🎲 Смешанный тест', mixedPool(MIXED), MIXED);
-    show('quiz'); showHook(null); renderQuestion(); say($('flowSupport'),'quizStart');
+    beginSession(null,'quizStart');
   }
 
   // ---- Rendering dispatch ----
@@ -634,6 +747,7 @@
     qScore.textContent=liveScore();
     qOpts.innerHTML='';
     qExplain.className='explain'; qExplain.innerHTML='';
+    $('qLive').textContent='';
     clearSay($('qSupport'));
     hideCheck();
     // вступление к главе — только перед первым вопросом, а реплики потока гаснут через два вопроса:
@@ -683,14 +797,16 @@
       [...t1.children].forEach((b,bi)=>{b.classList.remove('sel');
         if(curItem.opts[bi].ok)b.classList.add('correct');
         else if(bi===i)b.classList.add('wrong');});
+      markSr([...t1.children],curItem.opts,i);
       const right=curItem.reasons.find(r=>r.ok);
       commit(false, ' <i>Шаг 2 пропущен: обоснование имеет смысл только при верном ответе. Верное обоснование — «'+
         esc(right.text)+'».</i>');
       return;
     }
-    const h=document.createElement('div'); h.className='tier2head';
+    const h=document.createElement('div'); h.className='tier2head'; h.id='tier2h';
     h.textContent='Шаг 2. '+curItem.reasonQ;
     const t2=document.createElement('div'); t2.className='tier tier2';
+    t2.setAttribute('role','group'); t2.setAttribute('aria-labelledby','tier2h');
     curItem.reasons.forEach((r,j)=>{
       const b=document.createElement('button'); b.className='opt';
       b.innerHTML='<span class="mark">'+(j+1)+'</span><span>'+esc(r.text)+'</span>';
@@ -699,6 +815,9 @@
     });
     qOpts.appendChild(h); qOpts.appendChild(t2);
     h.scrollIntoView({behavior:'smooth',block:'nearest'});
+    // шаг 2 появляется без перезагрузки — переводим фокус на него, скринридер прочтёт заголовок группы
+    addSr(t1.children[i],' — выбран, верно');
+    t2.firstElementChild.focus({preventScroll:true});
   }
   // сюда попадаем только при верном первом шаге — оценивается одно обоснование
   function gradeTwoTier(i,j){
@@ -712,6 +831,7 @@
     [...t2.children].forEach((b,bj)=>{b.classList.add('locked');b.onclick=null;
       if(curItem.reasons[bj].ok)b.classList.add('correct');
       else if(bj===j)b.classList.add('wrong');});
+    markSr([...t2.children],curItem.reasons,j);
     // «Уверен» при неверной причине — не угадывание, а верный вывод на ложном основании
     if(!okB&&curItem.conf==='sure') curItem.reasonMiss=true;
     commit(okB, okB?'':(curItem.conf==='sure'
@@ -745,6 +865,10 @@
 
   // Common finalisation after any question is graded
   function commit(correct,note){
+    commitAnswer(correct,note);
+    persistSession();
+  }
+  function commitAnswer(correct,note){
     const s=session;
     s.answers[s.idx]=correct;
     lockConf();
@@ -764,15 +888,23 @@
     qExplain.innerHTML=(correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+
       (curItem.misc?'<span class="mtag">Разбор заблуждения</span> ':'')+esc(curItem.why)+(note||'')+extra;
     qExplain.className='explain show';
+    // объявляем всё пояснение вместе с примечаниями («шаг 2 пропущен», «вернётся через несколько вопросов»)
+    $('qLive').textContent=qExplain.textContent.replace(/^[✓✗]\s*/,'');
     qExplain.scrollIntoView({behavior:'smooth',block:'nearest'});
     qScore.textContent=liveScore();
     qNext.className='next ready';
+    // «Проверить» скрыт, в упорядочивании кнопки отключены — фокус не должен остаться на пропавшем элементе
+    const ae=document.activeElement;
+    if(!ae||ae===document.body||ae.disabled||!ae.offsetParent) qNext.focus({preventScroll:true});
     if(again){
       $('qCount').textContent='Вопрос '+(s.idx+1)+' из '+s.total+(curItem.retry?' · повтор':'');
       qNext.textContent=(s.idx===s.total-1)?'Показать результат →':'Далее →';
     }
     // повтор сразу после разбора и угаданный ответ не показывают знания — в серии, ярлыки и подстройку сложности их не берём
-    if(curItem.retry||(correct&&curItem.conf==='guess')){ say($('qSupport'),correct?'correct':'incorrect',!correct); return; }
+    // угаданный верный ответ не хвалим за «пойманную логику» — сам ученик сказал, что угадал
+    if(curItem.retry||(correct&&curItem.conf==='guess')){
+      say($('qSupport'),!correct?'incorrect':(curItem.conf==='guess'&&!curItem.retry?'guessedRight':'correct'),!correct); return;
+    }
     // поддержка по ходу: серии, две ошибки подряд, тематические ярлыки
     s.wrongStreak = correct ? 0 : (s.wrongStreak||0)+1;
     const prevRun = s.rightStreak||0;
@@ -805,7 +937,9 @@
       const mark=isMulti?'<span class="box"></span>':'<span class="mark">'+LETTERS[i]+'</span>';
       b.innerHTML=mark+'<span>'+esc(o.text)+'</span>';
       if(isMulti){
-        b.onclick=()=>{b.classList.toggle('sel');b.querySelector('.box').textContent=b.classList.contains('sel')?'✓':'';
+        b.setAttribute('aria-pressed','false');
+        b.onclick=()=>{const on=b.classList.toggle('sel');b.querySelector('.box').textContent=on?'✓':'';
+          b.setAttribute('aria-pressed',String(on));
           qCheck.disabled=![...qOpts.children].some(x=>x.classList.contains('sel'));};
       } else {
         b.onclick=()=>gradeSingle(i);
@@ -822,6 +956,7 @@
     btns.forEach((b,bi)=>{b.classList.add('locked');b.onclick=null;
       if(curItem.opts[bi].ok)b.classList.add('correct');
       else if(bi===i)b.classList.add('wrong');});
+    markSr(btns,curItem.opts,i);
     commit(correct);
   }
   function gradeMulti(){
@@ -829,11 +964,14 @@
     curItem.pick=[...qOpts.children].map((b,bi)=>b.classList.contains('sel')?curItem.opts[bi].text:null).filter(Boolean);
     [...qOpts.children].forEach((b,bi)=>{
       const sel=b.classList.contains('sel'), ok=curItem.opts[bi].ok;
-      b.classList.add('locked');b.classList.remove('sel');b.onclick=null;
+      b.classList.add('locked');b.classList.remove('sel');b.onclick=null;b.removeAttribute('aria-pressed');
       const box=b.querySelector('.box');
-      if(ok&&sel){b.classList.add('correct');box.textContent='✓';}
-      else if(!ok&&sel){b.classList.add('wrong');box.textContent='✗';}
-      else if(ok&&!sel){b.classList.add('miss');box.textContent='✓';}
+      // пропущенный верный вариант подписан словом: пунктирная рамка с той же ✓ читалась как «отмечено верно»
+      if(ok&&sel){b.classList.add('correct');box.textContent='✓';addSr(b,' — отмечен верно');}
+      else if(!ok&&sel){b.classList.add('wrong');box.textContent='✗';addSr(b,' — отмечен ошибочно');}
+      else if(ok&&!sel){b.classList.add('miss');box.textContent='✓';
+        // подпись — строкой под текстом: справа в ряд на узком экране она вылезала за кнопку
+        const t=document.createElement('span');t.className='misslbl';t.textContent=' верный, но не отмечен';b.children[1].appendChild(t);}
       if(ok!==sel)all=false;
     });
     hideCheck(); commit(all);
@@ -848,8 +986,13 @@
       curItem.right.forEach(r=>{opts+='<option value="'+esc(r)+'">'+esc(r)+'</option>';});
       row.innerHTML='<div class="ml"><b>'+LETTERS[i]+'.</b>'+esc(l)+'</div>'+
         '<div class="arr">→</div>'+
-        '<div class="mcell"><select>'+opts+'</select></div>';
-      row.querySelector('select').onchange=()=>{
+        '<div class="mcell"><select aria-label="'+esc(LETTERS[i]+'. '+l)+'">'+opts+'</select><span class="mpicked" aria-hidden="true"></span></div>';
+      const sel=row.querySelector('select'), picked=row.querySelector('.mpicked');
+      sel.onchange=()=>{
+        // закрытый список обрезает длинный вариант — показываем выбранное целиком, только если оно не влезло
+        const cv=renderMatch.cv||(renderMatch.cv=document.createElement('canvas').getContext('2d'));
+        cv.font=getComputedStyle(sel).font;
+        picked.textContent=(sel.value&&cv.measureText(sel.value).width>sel.clientWidth-48)?sel.value:'';
         qCheck.disabled=[...qOpts.querySelectorAll('select')].some(s=>!s.value);
       };
       qOpts.appendChild(row);
@@ -881,8 +1024,8 @@
     const a=session.orderState;
     a.forEach((text,i)=>{
       const row=document.createElement('div');row.className='orderitem';
-      row.innerHTML='<div class="ctrl"><button class="up" '+(i===0?'disabled':'')+'>▲</button>'+
-        '<button class="dn" '+(i===a.length-1?'disabled':'')+'>▼</button></div>'+
+      row.innerHTML='<div class="ctrl"><button class="up" aria-label="Поднять: '+esc(text)+'" '+(i===0?'aria-disabled="true"':'')+'>▲</button>'+
+        '<button class="dn" aria-label="Опустить: '+esc(text)+'" '+(i===a.length-1?'aria-disabled="true"':'')+'>▼</button></div>'+
         '<div class="num">'+(i+1)+'</div><div class="otext">'+esc(text)+'</div>';
       if(!locked){
         row.querySelector('.up').onclick=()=>moveItem(i,-1);
@@ -895,6 +1038,10 @@
     const a=session.orderState, j=i+dir;
     if(j<0||j>=a.length)return;
     [a[i],a[j]]=[a[j],a[i]]; drawOrder(false);
+    // список перерисован — возвращаем фокус к той же кнопке того же пункта, чтобы двигать его дальше;
+    // крайние кнопки лишь помечены aria-disabled, поэтому фокус не перескакивает на обратное направление
+    qOpts.children[j].querySelector(dir<0?'.up':'.dn').focus();
+    $('qLive').textContent='«'+a[j]+'» — на месте '+(j+1)+' из '+a.length;
   }
   function gradeOrder(){
     const a=session.orderState, sol=curItem.solution;
@@ -916,7 +1063,12 @@
   qNext.onclick=()=>{
     const s=session;
     if(s.answers[s.idx]==null) return; // must answer first
-    if(s.idx<s.total-1){s.idx++;renderQuestion();}
+    if(s.idx<s.total-1){
+      s.idx++; renderQuestion(); persistSession();
+      // после длинного пояснения страница укорачивается, и условие нового вопроса уходит за верх экрана
+      if(qText.getBoundingClientRect().top<0) quizEl.scrollIntoView({block:'start'});
+      qText.focus({preventScroll:true});
+    }
     else finish();
   };
 
@@ -954,6 +1106,7 @@
 
   function finish(){
     const s=session;
+    s.finished=true; clearSavedSession();
     // процент — по первым попыткам: повтор в той же сессии закрепляет, но результат не исправляет
     const first=firstTries(s);
     const correct=first.filter(x=>x.a).length;
@@ -990,7 +1143,7 @@
       const sw=withConf.filter(x=>x.c==='sure'&&!x.a).length;
       if(sw) lines.push('Ошибок при отметке «Уверен»: '+sw+' — они стоят первыми в разборе.');
     }
-    if(user){const d=srsDue().length,p=srsPending().length; if(p) lines.push('В очереди повторения: '+p+(d?', на сегодня: '+d:'')+'.');}
+    if(user){const d=srsDue().length,p=srsPending().length; if(p) lines.push('В очереди повторения: '+p+(d?', доступно сейчас: '+d:'')+'.');}
     $('rStats').innerHTML=lines.map(esc).join('<br>');
 
     say($('rSupport'),'chapterComplete');
@@ -1037,6 +1190,7 @@
 
     show('results');
     window.scrollTo({top:0,behavior:'smooth'});
+    $('rVerdict').focus({preventScroll:true});
   }
 
   function show(view){
@@ -1048,43 +1202,59 @@
     userbar.style.display = (user && view!=='login')?'flex':'none';
     if(view==='menu') renderMenu();
     if(view==='dash') renderDash();
+    // жест или кнопка «назад» на телефоне из теста, итогов и кабинета ведёт к списку глав, а не уводит с сайта
+    try{
+      const sub=view==='quiz'||view==='results'||view==='dash', inSub=!!(history.state&&history.state.sub);
+      if(sub&&!inSub) history.pushState({sub:1},'');
+      else if(!sub&&inSub) history.back();
+    }catch(e){}
   }
+  // прохождение уже сохранено после каждого ответа и «Далее» — при навигации его не пересохраняем:
+  // иначе брошенная или очищенная сессия из памяти записалась бы обратно
+  window.addEventListener('popstate',()=>{
+    if(!user||(history.state&&history.state.sub))return;
+    if(menu.style.display!=='block'){show('menu');window.scrollTo({top:0});focusMenu();}
+  });
+  // при возврате в меню фокус — на первое действие, а не в скрытый экран
+  function focusMenu(){const f=[$('resumeBtn'),$('reviewTodayBtn'),$('mixedBtn')].find(b=>b.style.display!=='none'); if(f)f.focus({preventScroll:true});}
 
   // ---- Повторение на сегодня ----
   // Берём вопросы, чей срок подошёл, раньше всего просроченные; за раз не больше REVIEW_MAX, чтобы сессия была короткой.
   const REVIEW_MAX=20;
   function startReview(){
-    const due=srsDue().sort((a,b)=>user.srs[a].due-user.srs[b].due).slice(0,REVIEW_MAX);
+    const due=srsDue().sort((a,b)=>dueAt(user.srs[a])-dueAt(user.srs[b])).slice(0,REVIEW_MAX);
     if(!due.length){
       const next=srsNextDate();
-      alert(next?'На сегодня повторять нечего. Следующее повторение — '+fmtDay(next)+'.':'Сейчас в очереди повторения ничего нет.');
+      alert(next?'Сейчас повторять нечего. Следующее повторение — '+fmtWhen(next)+'.':'Сейчас в очереди повторения ничего нет.');
       return;
     }
+    if(!okToReplace())return;
     const qs=due.map(id=>qLookup[id].raw);
     session=makeSession('__review','🔁 Повторение', qs, qs.length);
-    show('quiz'); showHook(null); renderQuestion(); say($('flowSupport'),'retry'); window.scrollTo({top:0});
+    beginSession(null,'reviewStart');
   }
 
   // ---- Dashboard (личный кабинет) ----
   function renderDash(){
     $('userName').textContent=user.name;
     const total=user.history.length;
-    // точность — по первым попыткам: повтор сразу после разбора её бы завышал
-    const firstRec=user.history.filter(h=>!h.retry);
+    // точность — по первым попыткам: повтор сразу после разбора её бы завышал;
+    // сессии «Повторения» (только трудные вопросы) не в счёт — иначе повторение снижало бы цифру
+    const firstRec=user.history.filter(h=>!h.retry&&h.mode!=='review');
     const acc=firstRec.length?Math.round(firstRec.filter(h=>h.correct).length/firstRec.length*100):0;
     const mistakes=currentMistakes(), due=srsDue(), next=srsNextDate();
     $('dashSub').textContent='Пользователь: '+user.name+' · всего ответов: '+total;
     const accCol=acc>=70?'var(--green)':'var(--amber)';
     $('statCards').innerHTML=
       '<div class="stat"><b>'+total+'</b><span>ответов дано</span></div>'+
-      '<div class="stat"><b style="color:'+accCol+'">'+acc+'%</b><span>точность</span></div>'+
-      '<div class="stat"><b style="color:var(--amber)">'+due.length+'</b><span>к повторению сегодня</span></div>';
+      '<div class="stat"><b style="color:'+accCol+'">'+acc+'%</b><span>точность в тестах</span></div>'+
+      '<div class="stat"><b style="color:var(--amber)">'+due.length+'</b><span>можно повторить сейчас</span></div>';
     const rb=$('reviewBtn');
     rb.textContent='🔁 Повторение на сегодня'+(due.length?' ('+Math.min(due.length,REVIEW_MAX)+(due.length>REVIEW_MAX?' из '+due.length:'')+')':'');
     rb.style.opacity=due.length?'1':'.5';
     rb.style.pointerEvents=due.length?'auto':'none';
     $('reviewNote').textContent=mistakes.length
-      ?'В очереди повторения: '+mistakes.length+'. Ошибка возвращается на следующий день, затем через 3, 7 и 21 день; после четырёх верных ответов в срок вопрос считается усвоенным.'+(!due.length&&next?' Следующее повторение — '+fmtDay(next)+'.':'')
+      ?'В очереди повторения: '+mistakes.length+'. Ошибка возвращается на следующий день, затем через 3, 7 и 21 день; после четырёх верных ответов в срок вопрос считается усвоенным.'+(!due.length&&next?' Следующее повторение — '+fmtWhen(next)+'.':'')
       :'';
 
     // освоение главы: полоса — доля освоенных из ВСЕХ вопросов главы (по последнему ответу),
@@ -1094,11 +1264,12 @@
     Object.keys(QUIZ).forEach(ck=>{
       const qs=QUIZ[ck].questions;
       let attempted=0, mastered=0;
-      qs.forEach(raw=>{const h=latest[raw.id]; if(h){attempted++; if(h.correct)mastered++;}});
+      // угаданный ответ и верный ответ до срока повторения (из рабочей памяти) ещё не освоение
+      qs.forEach(raw=>{const h=latest[raw.id]; if(h){attempted++; if(masteredBy(h))mastered++;}});
       const accuracy=attempted?Math.round(mastered/attempted*100):0;
       const col=attempted===0?'var(--muted)':accuracy>=70?'var(--green)':'var(--amber)';
       const row=document.createElement('div'); row.className='progress-row';
-      row.title=attempted?'Отвечено '+attempted+' из '+qs.length+', верно по последнему ответу — '+accuracy+'%':'Глава ещё не начата';
+      row.title=attempted?'Отвечено '+attempted+' из '+qs.length+', верно по последнему ответу (без угаданных и ответов до срока повторения) — '+accuracy+'%':'Глава ещё не начата';
       row.innerHTML='<div class="pl">'+QUIZ[ck].icon+' '+esc(QUIZ[ck].title)+'</div>'+
         '<div class="mini"><i style="width:'+Math.round(mastered/qs.length*100)+'%;background:'+col+'"></i></div>'+
         '<div class="pv">'+(attempted?mastered+' из '+qs.length:'—')+'</div>';
@@ -1120,7 +1291,7 @@
           const item=prep(meta.raw);
           const el=document.createElement('div'); el.className='mistake';
           const e=user.srs[m.id];
-          el.innerHTML='<div class="mch">'+esc(QUIZ[ck].title)+' · повторение '+(e.due<=Date.now()?'сегодня':fmtDay(e.due))+'</div>'+
+          el.innerHTML='<div class="mch">'+esc(QUIZ[ck].title)+' · повторение '+(isDue(e)?'сейчас':fmtWhen(dueAt(e)))+'</div>'+
             '<div class="mq">'+esc(meta.raw.q)+'</div>'+
             '<div class="mans">'+correctAnswerHTML(item)+'</div>'+
             '<div class="mwhy">'+esc(meta.raw.why)+'</div>';
@@ -1167,7 +1338,7 @@
     const latest=latestByQ();
     return Object.keys(QUIZ).map(ck=>{
       const qs=QUIZ[ck].questions; let a=0,m=0;
-      qs.forEach(r=>{const h=latest[r.id]; if(h){a++; if(h.correct)m++;}});
+      qs.forEach(r=>{const h=latest[r.id]; if(h){a++; if(masteredBy(h))m++;}});
       return {chapter:ck, title:QUIZ[ck].title, attempted:a, total:qs.length, mastery:a?Math.round(m/a*100):null};
     });
   }
@@ -1178,22 +1349,22 @@
       const raw=qLookup[m.id].raw, e=user.srs[m.id], l=last[m.id];
       return {chapter:m.ch, chapterTitle:QUIZ[m.ch]?QUIZ[m.ch].title:m.ch,
         status:(l&&!l.correct)?'ошибка':(l&&l.conf==='guess'?'угадано':'закрепляется'),
-        box:e.box, due:e.due?new Date(e.due).toISOString():null,
+        box:e.box, due:e.due?new Date(dueAt(e)).toISOString():null,
         type:raw.type||'single', question:raw.q,
         correctAnswer:correctAnswerTextRaw(raw), explanation:raw.why, source:raw};
     });
   }
   function exportMistakesJSON(){
     const data={ user:user.name, exportedAt:new Date().toISOString(),
-      totalAnswers:user.history.length, reviewQueueCount:currentMistakes().length, dueToday:srsDue().length,
+      totalAnswers:user.history.length, reviewQueueCount:currentMistakes().length, dueNow:srsDue().length,
       chapters:chapterStats(), reviewQueue:gatherMistakes() };
     download('bio-oshibki-'+safe(user.name)+'-'+dstamp()+'.json', JSON.stringify(data,null,2), 'application/json;charset=utf-8');
   }
   function exportHistoryCSV(){
     const CL={sure:'уверен',unsure:'сомневаюсь',guess:'угадываю'};
-    const rows=[['datetime','chapter','result','attempt','confidence','question']];
+    const rows=[['datetime','chapter','session','result','attempt','confidence','question']];
     user.history.forEach(h=>{
-      rows.push([new Date(h.t).toISOString(), QUIZ[h.ch]?QUIZ[h.ch].title:h.ch, h.correct?'верно':'ошибка', h.retry?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
+      rows.push([new Date(h.t).toISOString(), QUIZ[h.ch]?QUIZ[h.ch].title:h.ch, h.mode==='review'?'повторение':'тест', h.correct?'верно':'ошибка', h.retry?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
     });
     const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
     download('bio-istoriya-'+safe(user.name)+'-'+dstamp()+'.csv', '﻿'+csv, 'text/csv;charset=utf-8');
@@ -1220,22 +1391,22 @@
 
   // ---- Wiring ----
   $('mixedBtn').onclick=startMixed;
-  // глава длинная, а кнопка выхода рядом с «Далее» — случайное касание не должно обнулять прохождение
+  // прохождение сохранено — выход его не обнуляет, продолжить можно из меню;
+  // спрашиваем, только если сохранить не удалось (память браузера недоступна)
   $('quitBtn').onclick=()=>{
     const s=session, inProgress=s&&s.answers.length>0&&s.answers.length<s.total;
-    if(inProgress&&!confirm('Выйти к списку глав? Ответы сохранятся в истории, но итог и разбор этого прохождения не появятся.'))return;
-    show('menu');
+    if(inProgress&&!sessionSaved&&!confirm('Выйти к списку глав? Ответы сохранятся в истории, но итог и разбор этого прохождения не появятся.'))return;
+    window.scrollTo({top:0}); show('menu'); focusMenu();
   };
-  $('homeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');};
+  $('resumeBtn').onclick=resumeSession;
+  $('homeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');focusMenu();};
   $('retryBtn').onclick=()=>{
     if(session.key==='__mixed') startMixed();
     else if(session.key==='__review') startReview();
-    else startQuiz(session.key);
-    say($('flowSupport'),'retry');
-    window.scrollTo({top:0});
+    else {startQuiz(session.key); say($('flowSupport'),'retry');}
   };
   $('dashBtn').onclick=()=>{window.scrollTo({top:0});show('dash');};
-  $('dashHomeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');};
+  $('dashHomeBtn').onclick=()=>{window.scrollTo({top:0});show('menu');focusMenu();};
   $('reviewBtn').onclick=startReview;
   $('reviewTodayBtn').onclick=startReview;
   $('promptBtn').onclick=copyErrorPrompt;
@@ -1243,7 +1414,7 @@
   $('expCsvBtn').onclick=exportHistoryCSV;
   $('clearHistBtn').onclick=()=>{
     if(confirm('Удалить всю историю ответов, лучшие результаты и очередь повторения для «'+user.name+'»? Это нельзя отменить.')){
-      user.history=[]; user.best={}; user.srs={}; saveUser(); renderDash();
+      user.history=[]; user.best={}; user.srs={}; saveUser(); clearSavedSession(); session=null; renderDash();
     }
   };
   function doLogin(){
@@ -1253,7 +1424,26 @@
   }
   $('loginBtn').onclick=doLogin;
   $('loginInput').onkeydown=e=>{if(e.key==='Enter')doLogin();};
-  $('switchBtn').onclick=()=>{try{localStorage.removeItem(CUR);}catch(e){}user=null;$('loginInput').value='';show('login');setTimeout(()=>$('loginInput').focus(),50);};
+  // прохождение уже сохранено под именем пользователя — при возвращении его можно продолжить
+  $('switchBtn').onclick=()=>{try{localStorage.removeItem(CUR);}catch(e){}user=null;session=null;$('loginInput').value='';show('login');setTimeout(()=>$('loginInput').focus(),50);};
+  // вторая вкладка: перечитываем данные, иначе устаревшая вкладка при следующем ответе затёрла бы чужой прогресс
+  window.addEventListener('storage',e=>{
+    if(!user||!e.key)return;
+    // сохранённое прохождение одно: если его продолжили, завершили или заменили в другой вкладке,
+    // здесь останавливаемся — две вкладки по одной сессии записали бы каждый ответ дважды
+    if(e.key===sessKey()){
+      if(session&&!session.finished&&quizEl.style.display==='block'){
+        session.finished=true; sessionSaved=false;
+        show('menu'); window.scrollTo({top:0});
+        sayText($('menuNote'),'Прохождение продолжено, завершено или заменено в другой вкладке.');
+      } else if(menu.style.display==='block') renderMenu();
+      return;
+    }
+    if(e.key!==udKey(user.name)&&e.key!==srsKey(user.name))return;
+    loadUser(user.name);
+    if(menu.style.display==='block') renderMenu();
+    else if(dash.style.display==='block') renderDash();
+  });
 
   // ---- Init ----
   let savedName=null; try{savedName=localStorage.getItem(CUR);}catch(e){}
