@@ -3,7 +3,9 @@
 
    Как устроено:
    - игра только слушает события тренажёра: index.html вызывает её методы через G(...) внутри try/catch.
-     Очередь повторения, историю, освоение и точность она не меняет, а выключенная ничего не записывает;
+     Очередь повторения, историю, освоение и точность она не меняет;
+   - по умолчанию игра включена у всех учеников. Выключается в «Свет и герои → Настройки», и выключенная
+     ничего не записывает;
    - данные ученика — ключ bio_game_<имя>, пакет героев — bio_game_pack, один на устройство;
    - тексты героев — данные, а не код: свои герои — gameOwn в quiz-data.js, пакет из файла — JSON,
      который взрослый передаёт ученику. Такой файл в репозиторий не попадает;
@@ -147,7 +149,12 @@ window.BioGame = function (T) {
   function load(n) {
     if (n !== name) panel = 'main';
     name = n || null; st = null; pend = []; stripSess = null;
-    if (name) { try { const r = localStorage.getItem(KEY(name)); if (r) st = norm(JSON.parse(r)); } catch (e) { st = null; } }
+    if (name) {
+      try { const r = localStorage.getItem(KEY(name)); if (r) st = norm(JSON.parse(r)); } catch (e) { st = null; }
+      // игра включена у всех по умолчанию (решение пользователя 18.11.2026: попробовать, как она действует).
+      // Кто выключил её в настройках, у того она так и остаётся выключенной
+      if (!st) { st = blank(); st.on = true; st.since = now(); save(); }
+    }
     loadPack();
   }
   // не сохранилось — не страшно: учёба записана тренажёром отдельно, игра ей не мешает
@@ -267,15 +274,42 @@ window.BioGame = function (T) {
       esc(d.done ? (term('doneShort') || 'готово') + ' · ' + notes(dayNotes(d)) : dayNotes(d) + ' из ' + notes(dayTotal(d))) +
       '</span><span class="gweek">' + esc('Неделя: ' + weekDone() + ' из ' + WEEK_GOAL) + '</span></div>';
   }
+  // занятие начато, когда игра за ним ещё не следила: её включили посреди занятия или прохождение
+  // продолжено после перезагрузки. Уже сделанные шаги отмечаются по данным прохождения; ноты не удваиваются:
+  // у каждого вида свой предел, а свой ответ и разбор ошибки считаются по номеру вопроса
+  function backfill(s, L) {
+    const g0 = gain; gain = null;
+    capture(() => {
+      s.questions.forEach((it, i) => {
+        if (!it || i >= s.idx || s.answers[i] == null) return;
+        const m = T.qLookup[it.id]; if (!m) return; const raw = m.raw;
+        if (it.pre) { L.pa[it.id] = 1; return; }
+        if (it.type === 'read') { lightBar(L, 'read'); if (words(it.readText) >= RECALL_MIN) give(L, 'read', 1, ''); return; }
+        if (it.type === 'draw' || it.type === 'part2') { if (it.score != null) { lightBar(L, it.type); give(L, it.type, 3, ''); } return; }
+        if (it.retry || !T.counted(raw)) return;
+        L.qa[it.id] = 1;
+        if (words(it.recallText) >= RECALL_MIN && !L.rc[it.id]) { L.rc[it.id] = 1; give(L, 'recall', 1, ''); }
+        if (s.answers[i] === false) {
+          if (it.reason && !L.wy[it.id]) { L.wy[it.id] = 1; give(L, 'why', 1, ''); }
+          if (raw.misconception) L.caught[it.id] = 1;
+          if (it.conf === 'sure') L.prey[it.id] = 1;
+        }
+      });
+      if (size(L.pa) >= nPre(s.key) && lightBar(L, 'pre')) give(L, 'pre', 1, '');
+      if (size(L.qa) >= nCounted(s.key)) lightBar(L, 'q');
+    });
+    gain = g0;
+  }
   function question() {
     const strip = $('gStrip'); pend = []; renderLine(false);
     if (!strip) return;
     if (!on()) { strip.style.display = 'none'; strip.innerHTML = ''; return; }
     const s = T.session(), it = T.item(); if (!s || !it) return;
-    if (s !== stripSess) { stripSess = s; stripShown = {}; gain = { notes: 0, w: 0, s: 0, fixed: 0, prey: 0 }; }
+    const fresh = s !== stripSess;
+    if (fresh) { stripSess = s; stripShown = {}; gain = { notes: 0, w: 0, s: 0, fixed: 0, prey: 0 }; }
     let h = '';
     if (T.TOPICS[s.key]) {
-      const L = lesson(s.key), step = stepOf(it); save();
+      const L = lesson(s.key), step = stepOf(it); if (fresh) backfill(s, L); save();
       h = '<div id="gStripTop">' + stripTop(s, it, L) + '</div>';
       // одна реплика на шаг — на первом его вопросе; дальше над карточкой только полоса
       if (!stripShown[step] && !it.retry) { stripShown[step] = 1; h += heroHTML(hero('step_' + step)); }
@@ -754,7 +788,10 @@ window.BioGame = function (T) {
   // свои слова и журнал — без дублей
   function merge(g, pk) {
     const d = norm(g); if (!d) return false;
-    if (!st) { st = blank(); st.on = d.on; st.since = d.since; st.pack = d.pack; }
+    if (!st) st = blank();
+    // у ученика здесь ещё ничего не было — берём из копии и выключатель, и выбор героев
+    const fresh = !size(st.days) && !size(st.lessons) && !st.log.some((x) => !['on', 'off', 'pk'].includes(x.k));
+    if (fresh) { st.on = d.on; st.pack = d.pack; }
     if (d.since && (!st.since || d.since < st.since)) st.since = d.since;
     Object.keys(d.days).forEach((k) => { const a = st.days[k], b = d.days[k]; if (!a || b.r + b.c > a.r + a.c) st.days[k] = b; });
     const early = (a, b) => (a && b ? Math.min(a, b) : a || b);
@@ -772,6 +809,7 @@ window.BioGame = function (T) {
     st.words = uni(st.words, d.words, (x) => x.t + '|' + x.kind, 500);
     st.log = uni(st.log, d.log, (x) => x.t + '|' + x.k + '|' + (x.id || ''), 3000);
     if (isPack(pk)) { try { if (!readPackFile()) localStorage.setItem(PACK_KEY, JSON.stringify(pk)); } catch (e) { /* без пакета — свои герои */ } }
+    if (st.pack === 'file' && !readPackFile()) st.pack = 'own';
     save(); loadPack();
     return true;
   }

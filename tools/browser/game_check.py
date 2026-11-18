@@ -104,21 +104,42 @@ def main():
         page.goto(URL); page.wait_for_timeout(300)
         ev("()=>localStorage.removeItem('__shift')"); page.reload(); page.wait_for_timeout(300)
 
-        # ===== 1. Без игры: тот же сценарий — для сравнения учёбы =====
+        # ===== 1. Без игры: игра включена по умолчанию, ученик выключает её в настройках =====
         login("Без игры")
+        hub_def = ev("()=>({gHub:document.getElementById('gHub').style.display, gameBtn:document.getElementById('gameBtn').style.display})")
+        ev("()=>document.querySelector('#gHub [data-g=view]').click()"); page.wait_for_timeout(200)
+        ev("()=>document.querySelector('#gameBody [data-g=off]').click()"); page.wait_for_timeout(200); shot("g02-view-off")
+        ev("()=>document.getElementById('gameBack').click()"); page.wait_for_timeout(200); shot("g01-hub-off")
         hub_off = ev("()=>({gameBtn:document.getElementById('gameBtn').textContent, gHub:document.getElementById('gHub').style.display})")
+        before_off = game_state("Без игры")
         start_topic(); off0 = ev(DRIVE, LESSON)
         res_off = ev("()=>({frac:document.getElementById('rFrac').textContent, rGame:document.getElementById('rGame').style.display, exp:document.getElementById('explainGame').innerHTML})")
+        print("== по умолчанию ==", hub_def, "| ключ:", {k: before_off[k] for k in ('on', 'since')} if before_off else None)
         print("== без игры, занятие ==", hub_off, res_off, "строк игры:", sum(1 for x in off0 if x.get('line')))
-        print("   ключ игры:", game_state("Без игры"))
+        print("   данные игры за занятие не изменились:", game_state("Без игры") == before_off)
 
-        # ===== 2. С игрой: включение, занятие =====
+        # ===== 1б. Игру включили посреди занятия: сделанные шаги досчитываются по прохождению =====
+        login("Середина")
+        ev("()=>document.querySelector('#gHub [data-g=view]').click()"); page.wait_for_timeout(200)
+        ev("()=>document.querySelector('#gameBody [data-g=off]').click()"); page.wait_for_timeout(150)
+        ev("()=>document.getElementById('gameBack').click()"); page.wait_for_timeout(200)
+        start_topic(); mid0 = ev(DRIVE, dict(LESSON, stop="t1-007"))
+        ev("()=>document.getElementById('quitBtn').click()"); page.wait_for_timeout(200)
+        ev("()=>document.getElementById('gameBtn').click()"); page.wait_for_timeout(200)
+        ev("()=>document.querySelector('#gameBody [data-g=on]').click()"); page.wait_for_timeout(150)
+        ev("()=>document.getElementById('gameBack').click()"); page.wait_for_timeout(200)
+        ev("()=>document.getElementById('resumeBtn').click()"); page.wait_for_timeout(300)
+        Lm = game_state("Середина")['lessons']['t1']
+        print("== включили посреди занятия ==", "до паузы:", [x['id'] for x in mid0], "| полоса:", ev("()=>document.getElementById('gStrip').innerText").replace('\n', ' ')[:120])
+        print("   такты:", [k for k, v in Lm['bars'].items() if v], "ноты:", Lm['got'], "вопросы:", sorted(Lm['qa']), "улов:", sorted(Lm['caught']), sorted(Lm['prey']))
+        ev(DRIVE, LESSON)
+        Lm = game_state("Середина")['lessons']['t1']
+        print("   после занятия — такты:", [k for k, v in Lm['bars'].items() if v], "нот:", sum(Lm['got'].values()))
+
+        # ===== 2. С игрой — как по умолчанию у всех: занятие =====
         login("Игрок")
-        shot("g01-hub-off")
-        ev("()=>document.getElementById('gameBtn').click()"); page.wait_for_timeout(200); shot("g02-view-off")
-        ev("()=>document.querySelector('#gameBody [data-g=on]').click()"); page.wait_for_timeout(200); shot("g03-view-on")
-        ev("()=>document.getElementById('gameBack').click()"); page.wait_for_timeout(200); shot("g04-hub-on")
-        print("== хаб после включения ==", ev("()=>document.getElementById('gHub').innerText"))
+        shot("g04-hub-on")
+        print("== хаб по умолчанию ==", ev("()=>document.getElementById('gHub').innerText"))
         start_topic(); shot("g05-lesson-pre")
         on0 = ev(DRIVE, dict(LESSON, stop="t1-006"))
         shot("g05b-lesson-q6", "#qExplain")
