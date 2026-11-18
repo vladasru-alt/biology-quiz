@@ -10,6 +10,9 @@ const WORK = process.env.QUIZ_WORK ? path.resolve(process.env.QUIZ_WORK) : path.
 const RETIRED = path.join(__dirname, 'retired.json');
 
 const loadQuiz = (file = BANK) => new Function(fs.readFileSync(file, 'utf8') + ';return QUIZ')();
+// тренажёр по теме (TOPICS) и схемы к вопросам (figures) — отдельные от глав разделы файла данных
+const loadTopics = (file = BANK) => new Function(fs.readFileSync(file, 'utf8') + ';return typeof TOPICS !== "undefined" ? TOPICS : {}')();
+const loadFigures = (file = BANK) => new Function(fs.readFileSync(file, 'utf8') + ';return typeof figures !== "undefined" ? figures : {}')();
 const byId = (QUIZ) => { const m = {}; for (const k in QUIZ) QUIZ[k].questions.forEach((q) => { m[q.id] = q; }); return m; };
 const readJSON = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));
 const writeJSON = (f, o, ind = 1) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(o, null, ind)); };
@@ -48,6 +51,15 @@ const stripService = (q) => { const o = {}; for (const k of Object.keys(q)) if (
 // структура вопроса по типу и метаданные: список ошибок (пустой — всё в порядке)
 function structure(q) {
   const e = []; const isIdx = (i, n) => Number.isInteger(i) && i >= 0 && i < n;
+  // шаг «чтение» в занятии по теме: без метаданных и пояснения
+  if (q.type === 'read') {
+    if (typeof q.q !== 'string' || !q.q.trim()) e.push('нет условия');
+    if (!Array.isArray(q.points) || !q.points.length) e.push('read: points — что прочитать');
+    if (q.look !== undefined && !Array.isArray(q.look)) e.push('read: look — список вопросов');
+    return e;
+  }
+  if ('pre' in q && q.pre !== true) e.push('pre не true');
+  if ('recall' in q && q.recall !== true) e.push('recall не true');
   if (!SKILLS.includes(q.skill)) e.push('skill «' + q.skill + '»');
   if (!LEVELS.includes(q.level)) e.push('level «' + q.level + '»');
   if (![1, 2, 3].includes(q.difficulty)) e.push('difficulty ' + q.difficulty);
@@ -71,11 +83,21 @@ function structure(q) {
         || new Set(q.right).size !== q.right.length) e.push('match: 3–4 пары, правая колонка без повторов');
       break;
     case 'order': if (!Array.isArray(q.items) || q.items.length < 3 || q.items.length > 5 || new Set(q.items).size !== q.items.length) e.push('order: 3–5 разных пунктов'); break;
+    // «Нарисуй и сверь»: части схемы для самопроверки, у каждой — вопрос, который уйдёт в повторение, если часть забыта
+    case 'draw':
+      if (!Array.isArray(q.elements) || q.elements.length < 3 || q.elements.some((x) => !x || typeof x.text !== 'string' || !x.text.trim())) e.push('draw: 3+ частей {text, q}');
+      if (!q.ref) e.push('draw: нет ref — схемы для сверки');
+      break;
+    // задание второй части с самопроверкой по элементам ответа
+    case 'part2':
+      if (!Array.isArray(q.criteria) || !q.criteria.length || q.criteria.some((c) => typeof c !== 'string' || !c.trim())) e.push('part2: элементы ответа criteria');
+      if (typeof q.model !== 'string' || !q.model.trim()) e.push('part2: нет эталона model');
+      break;
     default: e.push('неизвестный type «' + q.type + '»');
   }
   return e;
 }
 
-module.exports = { fs, path, ROOT, BANK, INDEX, WORK, RETIRED, loadQuiz, byId, readJSON, writeJSON, work, readResult,
+module.exports = { fs, path, ROOT, BANK, INDEX, WORK, RETIRED, loadQuiz, loadTopics, loadFigures, byId, readJSON, writeJSON, work, readResult,
   rank, RANK_RU, spread, sentences, MAX_SPREAD, MAX_WHY_SENT, WHY_SOFT_LIMIT, VERDICT_START, MULTI_TAIL,
   SKILLS, LEVELS, W, E, BANNED_TERMS, bannedTerms, stripService, structure };

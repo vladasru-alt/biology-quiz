@@ -17,11 +17,20 @@
     const optBtns = () => [...document.querySelectorAll('#qOpts button.opt')];
     const optText = (b) => T(b.querySelector('span:nth-child(2)')).trim();
     const clickText = (t) => { const b = optBtns().find((b) => optText(b) === t); if (!b) throw new Error('нет кнопки «' + t + '»'); b.click(); };
-    const byQ = () => { const m = {}; Object.values(QUIZ).forEach((c) => c.questions.forEach((q) => { m[q.q] = q; })); return m; };
+    const SECS = () => Object.assign({}, QUIZ, typeof TOPICS !== 'undefined' ? TOPICS : {});
+    const byQ = () => { const m = {}; Object.values(SECS()).forEach((c) => c.questions.forEach((q) => { m[q.q] = q; })); return m; };
+    // шаги тренажёра по теме: кнопки-переключатели (рисунок, элементы ответа) — отметить все или ни одного
+    const markAll = (sel, on) => { [...document.querySelectorAll(sel)].forEach((b) => { if (b.classList.contains('sel') !== on) b.click(); }); };
     const orderRight = (q) => { for (let i = 0; i < q.items.length; i++) for (let g = 0; g < 10; g++) {
       const rows = [...document.querySelectorAll('#qOpts .orderitem')]; const pos = rows.findIndex((r) => T(r.querySelector('.otext')).trim() === q.items[i]);
       if (pos === i) break; rows[pos].querySelector('.up').click(); } };
     async function answer(q, ok) {
+      // шаг «Сначала вспомните»: варианты появляются после своего ответа
+      if ($('recallGo')) { $('recallText').value = 'ответ робота'; $('recallGo').click(); await sleep(10); }
+      if (q.type === 'read') { $('readDone').click(); return; }
+      if (q.type === 'draw') { $('drawDone').click(); await sleep(10); markAll('#qOpts .opt', ok); $('qCheck').click(); return; }
+      if (q.type === 'part2') { const ta = $('p2Text'); ta.value = 'ответ робота'; ta.dispatchEvent(new Event('input', { bubbles: true }));
+        $('qCheck').click(); await sleep(10); markAll('#p2Crit .opt', ok); $('qCheck').click(); return; }
       if (q.type === 'single') clickText(ok ? q.options[q.correct] : q.options.find((_, i) => i !== q.correct));
       else if (q.type === 'truefalse') optBtns().find((b) => (q.answer === ok) ? !/Неверно/.test(b.innerText) : /Неверно/.test(b.innerText)).click();
       else if (q.type === 'twotier') { clickText(ok ? q.options[q.correct] : q.options.find((_, i) => i !== q.correct)); await sleep(20); if (ok) clickText(q.reasons[q.reasonCorrect]); }
@@ -32,12 +41,13 @@
       else if (q.type === 'order') { if (ok) orderRight(q); $('qCheck').click(); }
     }
     window.__ans = async function (ok) { const q = byQ()[T($('qText')).trim()]; if (!q) throw new Error('вопрос не найден в банке'); await answer(q, ok); await sleep(20); return q.id + ' ' + q.type; };
+    // открыть главу или занятие по теме: карточки рисуются всегда, даже на скрытой странице меню
     window.__runChapter = async function (chKey) {
       // выход из открытого теста и замена незаконченного прохождения спрашивают confirm — на время отвечаем «да»
       const conf = window.confirm; window.confirm = () => true;
       try {
         if ($('menu').style.display === 'none') { if ($('results').style.display !== 'none') $('homeBtn').click(); else if ($('dash').style.display !== 'none') $('dashHomeBtn').click(); else $('quitBtn').click(); await sleep(150); }
-        const card = [...document.querySelectorAll('.chapter')].find((c) => T(c.querySelector('h3')).trim() === QUIZ[chKey].title);
+        const card = [...document.querySelectorAll('.chapter')].find((c) => T(c.querySelector('h3')).trim() === SECS()[chKey].title);
         if (!card) throw new Error('нет карточки главы ' + chKey);
         card.click(); await sleep(150);
       } finally { window.confirm = conf; }
@@ -48,6 +58,8 @@
         const q = m[T($('qText')).trim()]; if (!q) { bad.push('не найден: ' + T($('qText')).slice(0, 40)); break; }
         try { await answer(q, true); } catch (e) { bad.push(q.id + ': ' + e.message); }
         await sleep(15);
+        // шаг «чтение» сам переходит к следующему шагу — пояснения и «Далее» у него нет
+        if (q.type === 'read') continue;
         if (!$('qExplain').innerText.startsWith('✓')) bad.push(q.id + ' не засчитан');
         $('qNext').click(); await sleep(20);
       }
@@ -58,7 +70,7 @@
       // сохранённые прохождения иначе предложат «Продолжить» вместо нового прохода.
       // Удаляются незаконченные прохождения ВСЕХ пользователей этого браузера — запускать под тестовым профилем
       Object.keys(localStorage).filter((k) => k.startsWith(PREFIX + 'session_') || k.startsWith(PREFIX + 'side_session_')).forEach((k) => localStorage.removeItem(k));
-      const out = []; for (const k of Object.keys(QUIZ)) out.push(await window.__runChapter(k)); return out;
+      const out = []; for (const k of Object.keys(SECS())) out.push(await window.__runChapter(k)); return out;
     };
   }).toString() + ')(' + JSON.stringify(PREFIX) + ')';
   sessionStorage.setItem('__runnerLib', src);

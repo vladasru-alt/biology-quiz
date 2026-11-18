@@ -1,8 +1,11 @@
 // node tools/lint-bank.js [quiz-data.js] — сводный линтер всего банка: статистика по главам,
 // ОШИБКИ (нарушения стандарта, код выхода 1) и предупреждения (известные отклонения, которые стоит
 // просмотреть), межглавные почти-дубли условий. Правила — общие с lint-result.js, они в lib.js.
-const { BANK, loadQuiz, spread, sentences, MAX_SPREAD, MAX_WHY_SENT, WHY_SOFT_LIMIT, VERDICT_START, MULTI_TAIL, bannedTerms, structure } = require('./lib');
-const QUIZ = loadQuiz(process.argv[2] || BANK);
+const { BANK, loadQuiz, loadTopics, loadFigures, spread, sentences, MAX_SPREAD, MAX_WHY_SENT, WHY_SOFT_LIMIT, VERDICT_START, MULTI_TAIL, bannedTerms, structure } = require('./lib');
+const FILE = process.argv[2] || BANK;
+// главы (QUIZ) и тренажёр по теме (TOPICS) проверяются по одному стандарту; у тем есть шаги read/draw/part2
+const QUIZ = Object.assign({}, loadQuiz(FILE), loadTopics(FILE));
+const FIG = loadFigures(FILE);
 const rankT = (arr, c) => { const L = arr.map((s) => s.length), lc = L[c], mx = Math.max(...L), mn = Math.min(...L);
   if (lc === mx && L.filter((x) => x === mx).length === 1) return 'L'; if (lc === mn && L.filter((x) => x === mn).length === 1) return 'S';
   return (lc === mx || lc === mn) ? 'T' : 'M'; };
@@ -15,6 +18,9 @@ for (const k in QUIZ) {
     c(st.type, q.type); c(st.diff, q.difficulty); total.n++;
     if (!new RegExp('^' + k + '-\\d{3}$').test(id)) e('id не вида ' + k + '-NNN'); if (ids.has(id)) e('повтор id'); ids.add(id);
     structure(q).forEach(e);
+    if (q.fig && !FIG[q.fig]) e('нет схемы ' + q.fig); if (q.ref && !FIG[q.ref]) e('нет схемы для сверки ' + q.ref);
+    if (q.type === 'draw' && Array.isArray(q.elements)) q.elements.forEach((x) => { if (x && x.q && !qs.some((o) => o.id === x.q)) e('draw: часть ссылается на чужой или несуществующий вопрос ' + x.q); });
+    if (q.type === 'read') return;
     if (q.misconception) st.misc++; if (/Ученик/.test(q.q)) st.uch++;
     if (/^В опыте/.test(q.q)) e('условие начинается с «В опыте»');
     if (q.type === 'truefalse' && !/^Верно ли/.test(q.q)) e('truefalse без «Верно ли»');

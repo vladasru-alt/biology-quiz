@@ -226,6 +226,55 @@
   @media(max-width:520px){.qtext{font-size:16px}.card{padding:16px}.ring{width:140px;height:140px}
     .matchrow{flex-direction:column;align-items:stretch;gap:6px;margin-bottom:14px}.matchrow .ml{flex:none}.matchrow .arr{display:none}}
   @media(pointer:coarse){.orderitem .ctrl button{width:44px;height:36px;font-size:13px}.matchrow select{font-size:16px}}
+
+  /* Стартовая страница: три режима */
+  .modes{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:22px}
+  .mode{font:inherit;text-align:left;color:var(--ink);background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:18px;cursor:pointer;display:flex;flex-direction:column;gap:6px;min-height:150px;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+  @media(hover:hover){.mode:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:var(--shadow)}}
+  .mode:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .mode .mi{font-size:30px;line-height:1}
+  .mode b{font-size:17px}
+  .mode .md{color:var(--muted);font-size:13.5px;line-height:1.45}
+  .mode.new{border-color:rgba(47,191,113,.45)}
+  .tagnew{align-self:flex-start;display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--green);background:rgba(47,191,113,.12);border:1px solid rgba(47,191,113,.35);padding:2px 8px;border-radius:20px}
+  .backlink{font:inherit;font-size:14px;font-weight:600;background:transparent;border:none;color:var(--muted);cursor:pointer;padding:10px 0;min-height:44px}
+  .backlink:hover{color:var(--ink)}
+  .vh{font-size:22px;margin:4px 0}
+  .vsub{color:var(--muted);font-size:14px;margin:0 0 4px}
+  .chapter .stage{font-size:12px;color:var(--accent);margin:2px 0 6px}
+
+  /* Тренажёр по теме: шаг «Сначала вспомните», схемы, задания */
+  .recall{display:flex;flex-direction:column;gap:8px;margin:2px 0 6px}
+  .recall label,.p2 label{font-size:13px;font-weight:600}
+  .recall textarea,.p2 textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:96px;background:var(--bg2);color:var(--ink);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font:inherit;font-size:15px;line-height:1.45}
+  .recall textarea:focus,.p2 textarea:focus{outline:none;border-color:var(--accent)}
+  .recall .rrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .recall .checkbtn{margin-top:0}
+  .ghost{font:inherit;font-size:14px;font-weight:600;padding:11px 16px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;min-height:44px}
+  .ghost:hover{color:var(--ink);border-color:var(--accent)}
+  .recallbox{display:none;margin:0 0 12px;padding:10px 12px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);font-size:14px}
+  .recallbox.show{display:block}
+  .recallbox span{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:2px}
+  .fig{display:none;margin:0 0 14px;background:#f7f9fc;border-radius:12px;padding:10px;color:#1d2a3a}
+  .fig.show{display:block}
+  .fig svg{display:block;width:100%;height:auto;max-height:300px}
+  .fig figcaption{font-size:12.5px;color:#4a5a6a;margin-top:6px;text-align:center}
+  .read ul{margin:6px 0 12px;padding-left:20px} .read li{margin:4px 0}
+  .read .look{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:8px 0 4px}
+  .read .look b{font-size:13px;color:var(--accent)}
+  .task-step{font-size:14px;color:var(--muted);margin:2px 0 10px}
+  .p2 .note{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  .p2 label{display:block;margin-bottom:6px}
+  .whychips{display:none;margin-top:12px}
+  .whychips.show{display:block}
+  .whychips .cl{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px}
+  .whychips .cchip{margin:0 6px 6px 0}
+  .explain .ghost{margin-top:10px}
+  .lesson{display:none;text-align:left;margin:14px 0 4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:14px;line-height:1.55}
+  .lesson.show{display:block}
+  .lesson h3{font-size:15px;margin:12px 0 6px} .lesson h3:first-child{margin-top:0}
+  .lesson p{margin:6px 0}
+  .lesson .cta{margin:12px 0 0}
 </style>
 </head>
 <body>
@@ -233,7 +282,7 @@
   <header class="top">
     <div class="kicker">Тесты по биологии</div>
     <h1>Д. Тейлор · Н. Грин · У. Стаут — «Биология», том 1</h1>
-    <p>Тренируйтесь вспоминать и объяснять: 10 глав, от введения в биологию до экологии</p>
+    <p>Тренируйтесь вспоминать и объяснять: блиц-тест, полный тест по 10 главам и тренажёр по теме</p>
     <div class="userbar" id="userbar" style="display:none">
       <span class="who">👤 <b id="userName"></b></span>
       <button id="dashBtn">📊 Личный кабинет</button>
@@ -258,8 +307,26 @@
     <button class="cta" id="resumeSideBtn" style="display:none"></button>
     <button class="cta" id="reviewTodayBtn" style="display:none"></button>
     <button class="cta secondary" id="fixMenuBtn" style="display:none"></button>
-    <button class="cta" id="mixedBtn">🎲 Смешанный тест — 15 случайных вопросов из всех глав</button>
-    <div class="grid" id="grid"></div>
+    <!-- стартовая страница: три режима -->
+    <div id="hubView">
+      <div class="modes">
+        <button type="button" class="mode" id="modeBlitz"><span class="mi">⏱</span><b>Блиц-тест</b><span class="md">10 случайных вопросов из всех глав — около 5 минут</span></button>
+        <button type="button" class="mode" id="modeFull"><span class="mi">📚</span><b>Полный тест по главам</b><span class="md">10 глав учебника: все вопросы главы подряд, ошибки возвращаются</span></button>
+        <button type="button" class="mode new" id="modeTopic"><span class="mi">🧪</span><b>Тренажёр по теме</b><span class="tagnew">Новый формат</span><span class="md">Сначала вспомнить, потом выбрать. Схемы, рисунок по памяти, опыт с объяснением</span></button>
+      </div>
+    </div>
+    <div id="chaptersView" style="display:none">
+      <button type="button" class="backlink" id="chaptersBack">← Все режимы</button>
+      <h2 class="vh">Полный тест по главам</h2>
+      <p class="vsub">Глава проходится целиком. Ошибки возвращаются через несколько вопросов и на следующий день.</p>
+      <div class="grid" id="grid"></div>
+    </div>
+    <div id="topicsView" style="display:none">
+      <button type="button" class="backlink" id="topicsBack">← Все режимы</button>
+      <h2 class="vh">Тренажёр по теме</h2>
+      <p class="vsub">Занятие по шагам: вопросы до чтения, учебник, вопросы с шагом «Сначала вспомните», схемы, рисунок по памяти и опыт с объяснением. В зачёт идут вопросы после чтения.</p>
+      <div class="grid" id="topicGrid"></div>
+    </div>
     <footer>
       Материалы основаны на учебнике «Biological Science 1&amp;2» (Cambridge University Press),
       русское издание: БИНОМ. Лаборатория знаний, 2013.<br>
@@ -280,18 +347,21 @@
     <div class="card">
       <span class="qbadge" id="qBadge"></span>
       <p class="qtext" id="qText" tabindex="-1" aria-describedby="qCount qBadge qHint"></p>
+      <figure class="fig" id="qFig"></figure>
       <div class="qhint" id="qHint"></div>
       <div class="conf" id="qConf"></div>
+      <div class="recallbox" id="qRecall"></div>
       <div class="opts" id="qOpts"></div>
       <button class="checkbtn" id="qCheck" style="display:none">Проверить ответ</button>
       <div class="explain" id="qExplain"></div>
+      <div class="whychips" id="qWhy"></div>
       <div class="support" id="qSupport"></div>
       <div class="qnav">
         <div class="score-live" id="qScore"></div>
         <button class="next" id="qNext">Далее →</button>
       </div>
     </div>
-    <button class="cta secondary" id="quitBtn" style="margin-top:16px">← Выйти к списку глав</button>
+    <button class="cta secondary" id="quitBtn" style="margin-top:16px">← Выйти в меню</button>
     <!-- результат ответа и перестановки в упорядочивании — для скринридера; вне qOpts, который пересоздаётся -->
     <div id="qLive" class="sr-only" role="status" aria-live="polite"></div>
   </section>
@@ -309,11 +379,12 @@
     <div class="verdict" id="rVerdict" tabindex="-1" aria-describedby="rPct rFrac rSum"></div>
     <div class="rsum" id="rSum"></div>
     <div class="rsum2" id="rStats"></div>
+    <div class="lesson" id="rLesson"></div>
     <div class="support" id="rSupport" style="text-align:left"></div>
     <div class="achv" id="rAchv" style="justify-content:center"></div>
     <button class="cta" id="fixBtn" style="display:none"></button>
     <button class="cta" id="retryBtn">↻ Пройти заново</button>
-    <button class="cta secondary" id="homeBtn">← К списку глав</button>
+    <button class="cta secondary" id="homeBtn">← В меню</button>
     <div class="review" id="review"></div>
     <footer id="rFoot"></footer>
   </section>
@@ -343,7 +414,7 @@
       <button class="cta secondary" id="restoreBtn">⬆ Восстановить из копии</button>
       <input type="file" id="restoreFile" accept="application/json,.json" hidden>
     </div>
-    <button class="cta secondary" id="dashHomeBtn" style="margin-top:18px">← К списку глав</button>
+    <button class="cta secondary" id="dashHomeBtn" style="margin-top:18px">← В меню</button>
     <button class="cta secondary" id="clearHistBtn" style="margin-top:8px;border-color:rgba(229,83,75,.4);color:#e5867f">Очистить историю ответов</button>
   </section>
 </div>
@@ -365,7 +436,17 @@
   let user=null;
   // История привязана к постоянному id вопроса: правка формулировки не должна стирать прогресс ученика.
   const qLookup={}, idByText={};
-  Object.keys(QUIZ).forEach(ck=>QUIZ[ck].questions.forEach(raw=>{qLookup[raw.id]={ch:ck, raw}; idByText[raw.q]=raw.id;}));
+  // Тренажёр по теме — отдельный от глав раздел (TOPICS в файле данных): занятие по шагам в новом формате.
+  // SEC — все разделы для поиска по ключу; перебор глав (меню глав, смешанный тест) по-прежнему идёт по QUIZ
+  const TOPICS_=(typeof TOPICS!=='undefined')?TOPICS:{}, FIG=(typeof figures!=='undefined')?figures:{};
+  const SEC=Object.assign({},QUIZ,TOPICS_);
+  // чтение, рисунок со сверкой и задание с самопроверкой — шаги занятия, а не вопросы: в процент не идут
+  const NO_SCORE=new Set(['read','draw','part2']);
+  const isTask=raw=>NO_SCORE.has(raw.type);
+  // в освоение идут вопросы после чтения; вопросы до чтения (pre) — разминка
+  const counted=raw=>!raw.pre&&!isTask(raw);
+  const secTitle=k=>SEC[k]?SEC[k].title:k;
+  Object.keys(SEC).forEach(ck=>SEC[ck].questions.forEach(raw=>{qLookup[raw.id]={ch:ck, raw}; idByText[raw.q]=raw.id;}));
   function udKey(n){return 'bio_user_'+n;}
   // localStorage может быть недоступен (приватный режим, встроенный браузер) — тогда работаем в памяти
   function srsKey(n){return 'bio_srs_'+n;}
@@ -477,13 +558,21 @@
     if(user.history.length>LIM)user.history=user.history.slice(-LIM);
   }
   const LETTERS=['А','Б','В','Г','Д','Е'];
-  const BADGE={single:'Один ответ',multi:'Несколько ответов',match:'Сопоставление',order:'Упорядочивание',truefalse:'Верно / Неверно',twotier:'Ответ + обоснование'};
+  const BADGE={single:'Один ответ',multi:'Несколько ответов',match:'Сопоставление',order:'Упорядочивание',truefalse:'Верно / Неверно',twotier:'Ответ + обоснование',
+    read:'Чтение',draw:'Нарисуй и сверь',part2:'Опыт с объяснением'};
   const HINT={
     multi:'Выберите все верные варианты, затем нажмите «Проверить».',
     match:'Для каждого пункта выберите подходящий вариант из списка.',
     order:'Расставьте по порядку кнопками ▲ ▼, затем нажмите «Проверить».',
-    twotier:'Сначала выберите ответ. Если он верен, откроется шаг 2 — выбор обоснования. Вопрос засчитывается, только если верны оба шага.'
+    twotier:'Сначала выберите ответ. Если он верен, откроется шаг 2 — выбор обоснования. Вопрос засчитывается, только если верны оба шага.',
+    draw:'Рисунок — на бумаге, учебник закрыт. Потом сверьте его со схемой.',
+    part2:'Напишите ответ, затем проверьте себя по элементам ответа.'
   };
+  // шаг «Сначала вспомните»: варианты скрыты, пока ученик не ответит своими словами — так он вспоминает, а не узнаёт
+  const RECALL_HINT='Ответьте своими словами — варианты появятся после. Этот ответ не оценивается: он нужен, чтобы вспомнить, а не узнать.';
+  const PRE_HINT='Ответьте, как думаете: ошибаться здесь нормально. Вопрос до чтения настраивает внимание и не идёт в зачёт.';
+  // «Почему я ошибся» — самооценка после ошибки в тренажёре по теме; попадает в историю и в запрос для репетитора
+  const WHY_R=[['fact','Не знал факт'],['mixed','Перепутал понятия'],['logic','Ошибся в рассуждении'],['read','Невнимательно прочитал']];
 
   let session=null, curItem=null;
 
@@ -491,10 +580,11 @@
   // Глава — 50-70 вопросов, и на телефоне вкладку часто выгружают или закрывают жестом «назад».
   // Прохождение пишется после каждого ответа, чтобы его можно было продолжить, а не начинать заново.
   const SESS_FIELDS=['key','title','idx','total','answers','wrongStreak','rightStreak','target','topicCount',
-    'shown','earned','topicHits','focusShown','hadDoubleMiss','lastFlowAt','practice','base'];
+    'shown','earned','topicHits','focusShown','hadDoubleMiss','lastFlowAt','practice','base','ordered'];
   // Мест два: глава (длинная, её жалко терять) и короткие сессии — повторение, смешанный тест,
   // работа над ошибками. Иначе ежедневное «Повторение» затирало бы незаконченную главу.
-  const slotOf=key=>String(key).slice(0,2)==='ch'?'main':'side';
+  // служебные сессии начинаются с «__», главы и занятия по теме — длинные, им своё место
+  const slotOf=key=>String(key).slice(0,2)==='__'?'side':'main';
   function sessKey(slot){return (slot==='side'?'bio_side_session_':'bio_session_')+user.name;}
   let sessionSaved=false;
   function persistSession(){
@@ -603,7 +693,8 @@
   // настройка внимания перед трудной темой — один раз за прохождение
   function showHook(chKey){
     const el=$('qHook'), box=$('achvLive'); box.innerHTML='';
-    const text=chKey?HOOKS[chKey]:null, mood=chKey?MOOD[chKey]:null;
+    const sec=chKey?SEC[chKey]:null;
+    const text=chKey?(HOOKS[chKey]||(sec&&sec.hook)):null, mood=chKey?(MOOD[chKey]||(sec&&sec.mood)):null;
     if(!text){el.className='hook';el.innerHTML='';return;}
     el.innerHTML=(mood?'<span class="mood">'+esc(mood)+'</span>':'')+txt(text);
     el.className='hook show';
@@ -642,6 +733,10 @@
   function prep(q){
     const type=q.type||'single';
     const it={type, id:q.id, q:q.q, why:q.why, misc:!!q.misconception};
+    if(q.pre) it.pre=true;
+    if(q.recall) it.recall=true;
+    if(q.fig) it.fig=q.fig;
+    if(q.pre||NO_SCORE.has(type)) it.noScore=true;
     if(type==='single'){
       it.opts=shuffle(q.options.map((t,i)=>({text:t,ok:i===q.correct})));
     } else if(type==='multi'){
@@ -661,6 +756,12 @@
       it.opts=shuffle(q.options.map((t,i)=>({text:t,ok:i===q.correct})));
       it.reasons=shuffle(q.reasons.map((t,i)=>({text:t,ok:i===q.reasonCorrect})));
       it.reasonQ=q.reasonQ||'Почему вы так решили?';
+    } else if(type==='read'){
+      it.points=(q.points||[]).slice(); it.look=(q.look||[]).slice();
+    } else if(type==='draw'){
+      it.elements=q.elements.map(e=>({text:e.text,q:e.q||null})); it.ref=q.ref||null;
+    } else if(type==='part2'){
+      it.criteria=q.criteria.slice(); it.model=q.model; it.note=q.note||'';
     }
     return it;
   }
@@ -728,42 +829,58 @@
     // на карточке — освоение, а не лучший процент: сразу повторённая глава даёт высокий процент за счёт
     // узнавания только что виденных вариантов. Освоен вопрос, если последний ответ верен и не угадан,
     // а после ошибки — если он хотя бы раз верно повторён в срок (masteredBy)
+    // стартовая страница — три режима; главы и темы — свои страницы. Карточки рисуются всегда,
+    // даже на скрытой странице: по ним открывает главы робот прогона в браузере
+    $('hubView').style.display=menuPage==='hub'?'':'none';
+    $('chaptersView').style.display=menuPage==='chapters'?'':'none';
+    $('topicsView').style.display=menuPage==='topics'?'':'none';
     const latest=user?latestByQ():{};
-    Object.keys(QUIZ).forEach(key=>{
-      const ch=QUIZ[key], n=ch.questions.length;
+    const card=(key,sec,isTopic)=>{
+      // в освоение идут только вопросы: шаги занятия и вопросы до чтения не считаются
+      const qs=sec.questions.filter(counted), n=qs.length;
+      const nTasks=sec.questions.filter(r=>r.type==='draw'||r.type==='part2').length;
       let attempted=0, mastered=0;
-      ch.questions.forEach(raw=>{const h=latest[raw.id]; if(h){attempted++; if(masteredBy(h))mastered++;}});
-      const card=document.createElement('div');
-      card.className='chapter';
+      qs.forEach(raw=>{const h=latest[raw.id]; if(h){attempted++; if(masteredBy(h))mastered++;}});
+      const el=document.createElement('div');
+      el.className='chapter';
+      const open=()=>isTopic?startTopic(key):startQuiz(key);
       // карточка — не <button> (внутри заголовок и блоки), поэтому роль и клавиши задаём сами
-      card.tabIndex=0; card.setAttribute('role','button');
-      card.setAttribute('aria-label',ch.title+', '+n+' вопросов, '+(attempted?'освоено '+mastered+' из '+n:'не начата'));
-      card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();startQuiz(key);}};
-      card.innerHTML=
-        '<div class="ic">'+ch.icon+'</div>'+
-        '<h3>'+esc(ch.title)+'</h3>'+
-        '<div class="d">'+esc(ch.desc)+'</div>'+
-        '<div class="meta"><span>'+n+' вопросов</span>'+
+      el.tabIndex=0; el.setAttribute('role','button');
+      el.setAttribute('aria-label',sec.title+', '+n+' вопросов'+(nTasks?' и '+nTasks+' задания':'')+', '+(attempted?'освоено '+mastered+' из '+n:'не начата'));
+      el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
+      el.innerHTML=
+        '<div class="ic">'+sec.icon+'</div>'+
+        (isTopic?'<span class="tagnew" style="margin-top:8px">Новый формат</span>':'')+
+        '<h3>'+esc(sec.title)+'</h3>'+
+        (isTopic&&sec.stage?'<div class="stage">'+esc(sec.stage)+'</div>':'')+
+        '<div class="d">'+esc(sec.desc)+'</div>'+
+        '<div class="meta"><span>'+n+' вопросов'+(nTasks?' · '+nTasks+' задания':'')+'</span>'+
         (attempted?'<span class="best'+(mastered/n>=0.7?'':' part')+'" title="Последний ответ верен и не угадан, а после ошибки вопрос хотя бы раз верно повторён в срок">Освоено '+mastered+' из '+n+'</span>'
           :'<span class="best none">Не начата</span>')+
         '</div>';
-      card.onclick=()=>startQuiz(key);
-      grid.appendChild(card);
-    });
+      el.onclick=open;
+      return el;
+    };
+    Object.keys(QUIZ).forEach(key=>grid.appendChild(card(key,QUIZ[key],false)));
+    const tg=$('topicGrid'); tg.innerHTML='';
+    Object.keys(TOPICS_).forEach(key=>tg.appendChild(card(key,TOPICS_[key],true)));
   }
+  let menuPage='hub';
+  function setMenuPage(p){menuPage=p; renderMenu(); window.scrollTo({top:0}); focusMenu();}
 
   // ---- Sessions ----
   // Глава проходится целиком: задаются все её вопросы, прогресс-бар показывает выполнение главы.
   // Метаданные задают не отбор, а порядок: лёгкие вперёд, темы вперемежку, сложность следует за ответами.
-  const MIXED=15;
+  const MIXED=10; // блиц-тест: короткая сессия из всех глав
   // Запасной ключ темы — глава: вопрос без topic не должен сливаться с другими в один бакет.
   const topicOf=q=>q.topic||('гл:'+((qLookup[q.id]||{}).ch||'?'));
   const diffOf=q=>typeof q.difficulty==='number'?q.difficulty:2;
 
-  function makeSession(key,title,pool,size){
-    return {key, title, pool:shuffle(pool), questions:[], total:Math.min(size,pool.length),
+  // ordered — занятие по теме: шаги идут в заданном порядке (до чтения → чтение → вопросы → задания)
+  function makeSession(key,title,pool,size,ordered){
+    return {key, title, pool:ordered?pool.slice():shuffle(pool), questions:[], total:Math.min(size,pool.length),
             idx:0, answers:[], wrongStreak:0, rightStreak:0, target:1, topicCount:{},
-            shown:{}, earned:{}, topicHits:{}, focusShown:{}, hadDoubleMiss:false, later:[]};
+            shown:{}, earned:{}, topicHits:{}, focusShown:{}, hadDoubleMiss:false, later:[], ordered:!!ordered};
   }
   // Ошибочный (или угаданный) вопрос возвращается через несколько вопросов: вспомнить исправленное сразу после
   // разбора — самый дешёвый способ его закрепить. Повтор один, в процент результата он не входит.
@@ -786,10 +903,12 @@
     const it=prep(l.raw); it.retry=true; it.first=l.first;
     return it;
   }
-  const isFirstTry=(s,i)=>!(s.questions[i]&&s.questions[i].retry);
+  // в процент идут первые попытки вопросов; повтор в сессии, вопросы до чтения и шаги занятия — нет
+  const isFirstTry=(s,i)=>{const it=s.questions[i]; return !(it&&(it.retry||it.noScore));};
   // Порядок следующего вопроса: сначала непокрытые темы, затем близость к текущей целевой сложности.
   function pickNext(s){
     if(!s.pool.length) return null;
+    if(s.ordered){const q=s.pool.shift(); s.topicCount[topicOf(q)]=(s.topicCount[topicOf(q)]||0)+1; return q;}
     let best=Infinity, ties=[];
     s.pool.forEach((q,i)=>{
       const score=(s.topicCount[topicOf(q)]||0)*10 + Math.abs(diffOf(q)-s.target);
@@ -834,6 +953,12 @@
     session=makeSession(key, ch.title, ch.questions, ch.questions.length);
     beginSession(key,'chapterStart');
   }
+  // занятие по теме: шаги по порядку, без перемешивания
+  function startTopic(key){
+    const t=TOPICS_[key]; if(!t||!okToReplace(key,t.title))return;
+    session=makeSession(key, t.title, t.questions, t.questions.length, true);
+    beginSession(key,'topicStart');
+  }
   // работа над ошибками: только ошибки и угаданные прошедшего прохождения; ответы в ней не засчитываются
   // в освоение и не продвигают очередь повторения — настоящая проверка будет завтра, в «Повторении»
   // список ошибок и угаданных за сегодня: каждая сессия убирает из него заданные ею вопросы и добавляет
@@ -841,7 +966,7 @@
   // и тренироваться на них перед зачётной проверкой не нужно
   function fixKey(){return 'bio_fix_'+user.name;}
   // подпись главы — только если все вопросы списка из неё
-  function fixBase(ids){const chs=new Set(ids.map(id=>qLookup[id].ch));return chs.size===1?QUIZ[[...chs][0]].title:'';}
+  function fixBase(ids){const chs=new Set(ids.map(id=>qLookup[id].ch));return chs.size===1?secTitle([...chs][0]):'';}
   function loadFix(){
     let d=null; try{d=JSON.parse(localStorage.getItem(fixKey())||'null');}catch(e){d=null;}
     if(!d||!Array.isArray(d.ids)||Date.now()>=nextDayStart(d.t))return null;
@@ -866,8 +991,8 @@
     beginSession(null,'fixStart');
   }
   function startMixed(){
-    if(!okToReplace('__mixed','🎲 Смешанный тест'))return;
-    session=makeSession('__mixed','🎲 Смешанный тест', mixedPool(MIXED), MIXED);
+    if(!okToReplace('__mixed','⏱ Блиц-тест'))return;
+    session=makeSession('__mixed','⏱ Блиц-тест', mixedPool(MIXED), MIXED);
     beginSession(null,'quizStart');
   }
 
@@ -886,17 +1011,21 @@
     }
     curItem=s.questions[s.idx];
     $('qTitle').textContent=s.title;
-    $('qCount').textContent='Вопрос '+(s.idx+1)+' из '+s.total+(curItem.retry?' · повтор':'');
+    $('qCount').textContent=countText(s);
     $('qBar').style.width=(s.idx/s.total*100)+'%';
     qText.textContent=ty(curItem.q);
-    qBadge.textContent=(curItem.retry?'Ещё раз · ':'')+(BADGE[curItem.type]||'Вопрос');
-    qHint.textContent=HINT[curItem.type]||'';
+    const recallNow=curItem.recall&&!curItem.recalled;
+    qBadge.textContent=(curItem.retry?'Ещё раз · ':'')+(curItem.pre?'До чтения · не в зачёт':recallNow?'Сначала вспомните':(BADGE[curItem.type]||'Вопрос'));
+    qHint.textContent=curItem.pre?PRE_HINT:recallNow?RECALL_HINT:(HINT[curItem.type]||'');
+    showFig(curItem.fig);
+    $('qRecall').className='recallbox'; $('qRecall').innerHTML='';
+    $('qWhy').className='whychips'; $('qWhy').innerHTML='';
     qScore.textContent=liveScore();
     qOpts.innerHTML='';
     qExplain.className='explain'; qExplain.innerHTML='';
     $('qLive').textContent='';
     clearSay($('qSupport'));
-    hideCheck();
+    hideCheck(); qCheck.textContent='Проверить ответ';
     // вступление к главе — только перед первым вопросом, а реплики потока гаснут через два вопроса:
     // висящий над карточкой текст подсказывал бы ответы вместо того, чтобы их вспоминать
     if(s.idx>0) $('qHook').className='hook';
@@ -911,13 +1040,158 @@
     if(!milestone) maybeFocus();
     qNext.className='next'; qNext.setAttribute('aria-disabled','true');
     qNext.textContent=(s.idx===s.total-1)?'Показать результат →':'Далее →';
-    renderConf();
+    // уверенность нужна там, где ответ идёт в зачёт и в повторение
+    if(curItem.noScore){const c=$('qConf'); c.innerHTML=''; c.removeAttribute('role'); c.removeAttribute('aria-labelledby');}
+    else renderConf();
+    if(recallNow) renderRecall(); else renderBody();
+  }
+  function countText(s){return (s.ordered?'Шаг ':'Вопрос ')+(s.idx+1)+' из '+s.total+(curItem&&curItem.retry?' · повтор':'');}
+  function renderBody(){
+    const t=curItem.type;
+    if(curItem.recalled&&curItem.recallText){const rb=$('qRecall'); rb.innerHTML='<span>Ваш ответ своими словами</span>'+txt(curItem.recallText); rb.className='recallbox show';}
+    if(t==='single'||t==='truefalse') renderChoice(false);
+    else if(t==='multi') renderChoice(true);
+    else if(t==='match') renderMatch();
+    else if(t==='order') renderOrder();
+    else if(t==='twotier') renderTwoTier();
+    else if(t==='read') renderRead();
+    else if(t==='draw') renderDraw();
+    else if(t==='part2') renderPart2();
+  }
+  // схема к вопросу: рисунки тренажёра из файла данных, с описанием словами для скринридера
+  function showFig(key){
+    const fg=$('qFig'), fd=key&&FIG[key];
+    if(!fd){fg.innerHTML='';fg.className='fig';return;}
+    fg.innerHTML=fd.svg+(fd.caption?'<figcaption>'+txt(fd.caption)+'</figcaption>':'');
+    const sv=fg.querySelector('svg'); if(sv){sv.setAttribute('role','img');sv.setAttribute('aria-label',fd.alt||fd.caption||'');}
+    fg.className='fig show';
+  }
 
-    if(curItem.type==='single'||curItem.type==='truefalse') renderChoice(false);
-    else if(curItem.type==='multi') renderChoice(true);
-    else if(curItem.type==='match') renderMatch();
-    else if(curItem.type==='order') renderOrder();
-    else if(curItem.type==='twotier') renderTwoTier();
+  // ---- Тренажёр по теме: шаг «Сначала вспомните» ----
+  // Варианты скрыты, пока ученик не сформулирует ответ сам: порождение ответа сильнее узнавания.
+  // Свой ответ не оценивается — он виден над вариантами и попадает в запрос для репетитора.
+  function renderRecall(){
+    const box=document.createElement('div'); box.className='recall';
+    box.innerHTML='<label for="recallText">Ваш ответ своими словами</label>'+
+      '<textarea id="recallText" rows="3" placeholder="Как вы это понимаете?"></textarea>'+
+      '<div class="rrow"><button type="button" class="checkbtn" id="recallGo">Показать варианты</button>'+
+      '<button type="button" class="ghost" id="recallSkip">Не могу вспомнить — показать</button></div>';
+    qOpts.appendChild(box);
+    const go=skip=>{
+      curItem.recallText=skip?'':box.querySelector('textarea').value.trim(); curItem.recalled=true;
+      qOpts.innerHTML='';
+      qBadge.textContent=(curItem.retry?'Ещё раз · ':'')+(BADGE[curItem.type]||'Вопрос');
+      qHint.textContent=HINT[curItem.type]||'';
+      renderBody();
+      const f=qOpts.querySelector('button'); if(f)f.focus({preventScroll:true});
+    };
+    $('recallGo').onclick=()=>go(false); $('recallSkip').onclick=()=>go(true);
+  }
+
+  // ---- Тренажёр по теме: чтение, рисунок со сверкой, задание с самопроверкой ----
+  function renderRead(){
+    const d=document.createElement('div'); d.className='read';
+    d.innerHTML='<ul>'+curItem.points.map(p=>'<li>'+txt(p)+'</li>').join('')+'</ul>'+
+      (curItem.look.length?'<div class="look"><b>Ищите в тексте ответы</b><ul>'+curItem.look.map(p=>'<li>'+txt(p)+'</li>').join('')+'</ul></div>':'')+
+      '<button type="button" class="checkbtn" id="readDone">Прочитано — к вопросам</button>';
+    qOpts.appendChild(d);
+    // чтение — не вопрос: одна кнопка и сразу к следующему шагу
+    $('readDone').onclick=()=>{$('readDone').disabled=true; commitTask(true,'<b>✓ Учебник можно закрыть.</b> Дальше вопросы: сначала ответ своими словами, потом варианты.'); qNext.click();};
+  }
+  function toggleBox(b){
+    b.type='button'; b.className='opt'; b.setAttribute('aria-pressed','false');
+    b.onclick=()=>{if(b.classList.contains('locked'))return; const on=b.classList.toggle('sel'); b.querySelector('.box').textContent=on?'✓':''; b.setAttribute('aria-pressed',String(on));};
+    return b;
+  }
+  function renderDraw(){
+    const d=document.createElement('div');
+    d.innerHTML='<p class="task-step"><b>Шаг 1.</b> Нарисуйте схему на бумаге по памяти и подпишите части. Учебник закрыт, рисовать красиво не нужно.</p>'+
+      '<button type="button" class="checkbtn" id="drawDone">Готово — сверить</button>';
+    qOpts.appendChild(d);
+    $('drawDone').onclick=()=>{
+      qOpts.innerHTML=''; showFig(curItem.ref);
+      qHint.textContent='Шаг 2. Сверьте рисунок со схемой и отметьте, что на нём есть. Забытое уйдёт в повторение.';
+      curItem.elements.forEach(e=>{const b=toggleBox(document.createElement('button')); b.innerHTML='<span class="box"></span><span>'+txt(e.text)+'</span>'; qOpts.appendChild(b);});
+      showCheck(gradeDraw,true); qCheck.textContent='Сохранить сверку';
+      const f=qOpts.querySelector('button'); if(f)f.focus({preventScroll:true});
+    };
+  }
+  function gradeDraw(){
+    const have=[], miss=[];
+    [...qOpts.children].forEach((b,i)=>{const e=curItem.elements[i], on=b.classList.contains('sel');
+      (on?have:miss).push(e); b.classList.add('locked'); b.classList.remove('sel'); b.onclick=null; b.removeAttribute('aria-pressed');
+      if(on) addSr(b,' — есть на рисунке'); else {b.classList.add('miss'); addSr(b,' — не хватает');}
+      if(on) b.classList.add('correct');});
+    hideCheck(); qCheck.textContent='Проверить ответ';
+    curItem.pick=have.map(e=>e.text); curItem.score=have.length;
+    // забытые части — в повторение: связанные с ними вопросы вернутся завтра
+    if(user&&!session.practice){const now=Date.now();
+      [...new Set(miss.map(e=>e.q).filter(id=>id&&qLookup[id]))].forEach(id=>{user.srs[id]={box:0,due:dueIn(1),set:now};});}
+    const ok=!miss.length, n=curItem.elements.length;
+    commitTask(ok,(ok?'<b>✓ Все части на месте.</b> ':'<b>◐ На рисунке '+have.length+' из '+n+'.</b> ')+txt(curItem.why)+
+      (miss.length?' <i>Не хватило: '+esc(miss.map(e=>lcFirst(e.text)).join(', '))+'. Вопросы об этом и сам рисунок вернутся завтра — в повторении.</i>':''));
+  }
+  function renderPart2(){
+    const d=document.createElement('div'); d.className='p2';
+    d.innerHTML=(curItem.note?'<p class="note">'+txt(curItem.note)+'</p>':'')+
+      '<label for="p2Text">Ваш ответ</label><textarea id="p2Text" rows="5" placeholder="Ответьте на каждый вопрос задания"></textarea>';
+    qOpts.appendChild(d);
+    const ta=$('p2Text');
+    showCheck(p2SelfCheck,false); qCheck.textContent='Проверить себя по элементам';
+    ta.oninput=()=>{qCheck.disabled=!ta.value.trim();};
+  }
+  function p2SelfCheck(){
+    const ta=$('p2Text'); curItem.answerText=ta.value.trim(); if(!curItem.answerText)return;
+    ta.readOnly=true;
+    qHint.textContent='Отметьте элементы, которые явно есть в вашем ответе: балл — только за то, что написано.';
+    const list=document.createElement('div'); list.className='opts'; list.id='p2Crit'; list.style.marginTop='12px';
+    curItem.criteria.forEach(c=>{const b=toggleBox(document.createElement('button')); b.innerHTML='<span class="box"></span><span>'+txt(c)+'</span>'; list.appendChild(b);});
+    qOpts.appendChild(list);
+    showCheck(gradePart2,true); qCheck.textContent='Сохранить оценку';
+    list.querySelector('button').focus({preventScroll:true});
+  }
+  function gradePart2(){
+    let k=0;
+    [...$('p2Crit').children].forEach(b=>{const on=b.classList.contains('sel'); if(on){k++;b.classList.add('correct');}
+      b.classList.add('locked'); b.classList.remove('sel'); b.onclick=null; b.removeAttribute('aria-pressed'); addSr(b,on?' — есть в ответе':' — нет в ответе');});
+    hideCheck(); qCheck.textContent='Проверить ответ';
+    const max=curItem.criteria.length, ok=k===max; curItem.score=k; curItem.pick=curItem.answerText;
+    commitTask(ok,(ok?'<b>✓ Ваша оценка: ':'<b>◐ Ваша оценка: ')+k+' из '+max+'.</b><br><b>Эталон.</b> '+txt(curItem.model)+'<br>'+txt(curItem.why)+
+      (ok?'':' <i>Задание вернётся завтра — в повторении.</i>')+
+      '<br><button type="button" class="ghost" id="p2Ai">📋 Второе мнение: запрос для ИИ с критериями</button>');
+    const it=curItem; $('p2Ai').onclick=()=>copyText(buildPart2Prompt(it),'Запрос скопирован. Вставьте его в чат с ИИ: он оценит ответ по тем же элементам.');
+  }
+  // шаги занятия: чтение не пишется в историю; рисунок и задание идут в историю и в повторение, но не в процент
+  function commitTask(ok,html){
+    const s=session; s.answers[s.idx]=ok;
+    if(curItem.type!=='read') recordAnswer(ok);
+    revealAnswer(html);
+    persistSession();
+  }
+  function revealAnswer(html){
+    qExplain.innerHTML=html; qExplain.className='explain show';
+    // объявляем всё пояснение вместе с примечаниями («шаг 2 пропущен», «вернётся через несколько вопросов»)
+    $('qLive').textContent=qExplain.textContent.replace(/^[✓✗◐]\s*/,'');
+    qExplain.scrollIntoView({behavior:'smooth',block:'nearest'});
+    qScore.textContent=liveScore();
+    qNext.className='next ready'; qNext.removeAttribute('aria-disabled');
+    // «Проверить» скрыт, в упорядочивании кнопки отключены — фокус не должен остаться на пропавшем элементе
+    const ae=document.activeElement;
+    if(!ae||ae===document.body||ae.disabled||!ae.offsetParent) qNext.focus({preventScroll:true});
+  }
+  const lcFirst=s=>s.charAt(0).toLowerCase()+s.slice(1);
+  function isTopicItem(it){const m=qLookup[it.id]; return !!(m&&TOPICS_[m.ch]);}
+  function renderWhyChips(){
+    const box=$('qWhy');
+    box.innerHTML='<span class="cl" id="whyLbl">Почему вы ошиблись? Отметка поможет разобрать ошибку с репетитором.</span>'+
+      WHY_R.map(([k,l])=>'<button type="button" class="cchip" data-k="'+k+'" aria-pressed="false">'+l+'</button>').join('');
+    box.setAttribute('role','group'); box.setAttribute('aria-labelledby','whyLbl'); box.className='whychips show';
+    box.querySelectorAll('.cchip').forEach(b=>{b.onclick=()=>{
+      curItem.reason=curItem.reason===b.dataset.k?null:b.dataset.k;
+      box.querySelectorAll('.cchip').forEach(x=>{const on=x.dataset.k===curItem.reason;x.classList.toggle('on',on);x.setAttribute('aria-pressed',String(on));});
+      if(user){for(let i=user.history.length-1;i>=0;i--){const h=user.history[i]; if(h.id===curItem.id){if(curItem.reason)h.reason=curItem.reason; else delete h.reason; break;}} saveUser();}
+      persistSession();
+    };});
   }
 
   // ---- Two-tier: answer, then justification (both must be right) ----
@@ -988,7 +1262,8 @@
 
   // счёт — по первым попыткам: повтор нужен для закрепления, а не для исправления процента
   function firstTries(s){return s.answers.map((a,i)=>({a,i})).filter(x=>x.a!=null&&isFirstTry(s,x.i));}
-  function liveScore(){const f=firstTries(session);return 'Верно: '+f.filter(x=>x.a).length+' из '+f.length;}
+  // пока нет ни одного ответа в зачёт (вопросы до чтения, чтение) — счёт не показываем: «0 из 0» ничего не говорит
+  function liveScore(){const f=firstTries(session);return f.length?'Верно: '+f.filter(x=>x.a).length+' из '+f.length:'';}
 
   // ---- Уверенность перед ответом (по желанию) ----
   // Отметка учит отличать знание от угадывания: угаданный верный ответ уходит в повторение,
@@ -1017,6 +1292,13 @@
   }
   function commitAnswer(correct,note){
     const s=session;
+    // вопрос до чтения — разминка: без истории, повторения, повтора в сессии и серий
+    if(curItem.pre){
+      s.answers[s.idx]=correct; lockConf();
+      revealAnswer((correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+(curItem.misc?'<span class="mtag">Разбор заблуждения</span> ':'')+txt(curItem.why)+(note||'')+
+        ' <i>Вопрос до чтения не идёт в зачёт: ответ вы встретите в учебнике.</i>');
+      return;
+    }
     s.answers[s.idx]=correct;
     lockConf();
     recordAnswer(correct);
@@ -1032,21 +1314,13 @@
     } else if(!correct){
       extra+=again?' <i>Этот вопрос вернётся через несколько вопросов, а затем завтра — в повторении.</i>':' <i>Вопрос вернётся завтра — в повторении.</i>';
     }
-    qExplain.innerHTML=(correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+
-      (curItem.misc?'<span class="mtag">Разбор заблуждения</span> ':'')+txt(curItem.why)+(note||'')+extra;
-    qExplain.className='explain show';
-    // объявляем всё пояснение вместе с примечаниями («шаг 2 пропущен», «вернётся через несколько вопросов»)
-    $('qLive').textContent=qExplain.textContent.replace(/^[✓✗]\s*/,'');
-    qExplain.scrollIntoView({behavior:'smooth',block:'nearest'});
-    qScore.textContent=liveScore();
-    qNext.className='next ready'; qNext.removeAttribute('aria-disabled');
-    // «Проверить» скрыт, в упорядочивании кнопки отключены — фокус не должен остаться на пропавшем элементе
-    const ae=document.activeElement;
-    if(!ae||ae===document.body||ae.disabled||!ae.offsetParent) qNext.focus({preventScroll:true});
+    revealAnswer((correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+
+      (curItem.misc?'<span class="mtag">Разбор заблуждения</span> ':'')+txt(curItem.why)+(note||'')+extra);
     if(again){
-      $('qCount').textContent='Вопрос '+(s.idx+1)+' из '+s.total+(curItem.retry?' · повтор':'');
+      $('qCount').textContent=countText(s);
       qNext.textContent=(s.idx===s.total-1)?'Показать результат →':'Далее →';
     }
+    if(!correct&&isTopicItem(curItem)) renderWhyChips();
     // повтор сразу после разбора, работа над ошибками и угаданный ответ не показывают знания —
     // в серии, ярлыки и подстройку сложности их не берём;
     // угаданный верный ответ не хвалим за «пойманную логику» — сам ученик сказал, что угадал
@@ -1240,6 +1514,8 @@
       return '<span class="ok">Ответ: '+txt(item.opts.find(o=>o.ok).text)+
              '<br>Обоснование: '+txt(item.reasons.find(r=>r.ok).text)+'</span>';
     }
+    if(item.type==='draw') return '<span class="ok">Части схемы: '+item.elements.map(e=>txt(e.text)).join('; ')+'</span>';
+    if(item.type==='part2') return '<span class="ok">Эталон: '+txt(item.model)+'</span>';
     return '';
   }
 
@@ -1249,7 +1525,8 @@
     if(p==null) return '';
     if(item.type==='match') return item.left.map((l,i)=>txt(l)+' → '+txt(p[i]||'—')+(p[i]===item.solution[i]?'':' ✗')).join('<br>');
     if(item.type==='order') return p.map((t,i)=>(i+1)+'. '+txt(t)+(t===item.solution[i]?'':' ✗')).join('<br>');
-    if(item.type==='multi') return p.length?p.map(txt).join('; '):'ничего не отмечено';
+    if(item.type==='multi'||item.type==='draw') return p.length?p.map(txt).join('; '):'ничего не отмечено';
+    if(item.type==='part2') return '«'+txt(p)+'»'+(item.score!=null?' — самооценка '+item.score+' из '+item.criteria.length:'');
     if(item.type==='twotier') return txt(p)+(item.pickReason?'<br>Обоснование: '+txt(item.pickReason):' (шаг 2 пропущен)');
     return '«'+txt(p)+'»';
   }
@@ -1265,7 +1542,7 @@
     document.getElementById('qBar').style.width='100%';
 
     // save best score per user (only for real chapters, not mixed/review)
-    if(user && s.key.slice(0,2)==='ch'){
+    if(user && s.key.slice(0,2)!=='__'){
       if(user.best[s.key]==null || pct>user.best[s.key]){user.best[s.key]=pct;saveUser();}
     }
 
@@ -1302,6 +1579,7 @@
     }
     if(user){const d=srsDue().length,p=srsPending().length; if(p) lines.push('В очереди повторения: '+p+(d?', доступно сейчас: '+d:'')+'.');}
     $('rStats').innerHTML=lines.map(esc).join('<br>');
+    renderLessonResults(s);
 
     say($('rSupport'),'chapterComplete');
     // главное действие после итогов — добрать ошибки и угаданные, а не пройти всё заново:
@@ -1331,14 +1609,14 @@
       const reviewFirst=s.key==='__review'&&dueNow;
       rt.className='cta'+(!reviewFirst&&fixIds.length?' secondary':''); fb.className='cta'+(reviewFirst?' secondary':'');
     } else {
-      rt.textContent=s.key==='__mixed'?'🎲 Новый смешанный тест':'↻ Пройти главу заново'; rt.style.display='';
+      rt.textContent=s.key==='__mixed'?'⏱ Новый блиц-тест':TOPICS_[s.key]?'↻ Пройти занятие заново':'↻ Пройти главу заново'; rt.style.display='';
       rt.className='cta'+(fixIds.length?' secondary':''); fb.className='cta';
     }
     // главная кнопка — выше второстепенной, и Tab доходит до неё первой
     if(rt.className==='cta'&&fb.className!=='cta') rt.parentNode.insertBefore(rt,fb); else fb.parentNode.insertBefore(fb,rt);
     $('rFoot').textContent=fixIds.length?'Ошибки и угаданные уже в очереди повторения — вернутся не раньше завтра. Работа над ошибками сейчас — тренировка, в зачёт идёт повторение.':'';
     $('rFoot').style.display=fixIds.length?'':'none';
-    if(s.key.slice(0,2)==='ch') award('complete');
+    if(s.key.slice(0,2)!=='__') award(TOPICS_[s.key]?'lesson':'complete');
     const rb=$('rAchv'); rb.innerHTML='';
     Object.values(s.earned).forEach(l=>{const c=document.createElement('span');c.className='chip';c.textContent='✓ '+l;rb.appendChild(c);});
 
@@ -1381,6 +1659,63 @@
     $('rVerdict').focus({preventScroll:true});
   }
 
+  // ---- Итоги занятия по теме: задания, причины ошибок, «объясни взрослому», запрос для репетитора ----
+  function renderLessonResults(s){
+    const box=$('rLesson'), t=TOPICS_[s.key];
+    const rows=s.questions.map((it,i)=>({it,a:s.answers[i]}));
+    const tasks=rows.filter(x=>x.it&&(x.it.type==='draw'||x.it.type==='part2')&&x.a!=null&&x.it.score!=null);
+    if(!t&&!tasks.length){box.className='lesson';box.innerHTML='';return;}
+    const RL={}; WHY_R.forEach(([k,l])=>{RL[k]=l;});
+    const byQ={}; rows.filter(x=>x.it&&x.a===false&&x.it.reason).forEach(x=>{byQ[x.it.id]=x.it.reason;});
+    const reasons={}; Object.values(byQ).forEach(r=>{reasons[r]=(reasons[r]||0)+1;});
+    let h='';
+    if(tasks.length) h+='<h3>Задания</h3>'+tasks.map(x=>'<p>'+(x.it.type==='draw'
+      ?'Рисунок по памяти: на месте '+x.it.score+' из '+x.it.elements.length+' частей.'
+      :'Опыт с объяснением: ваша оценка '+x.it.score+' из '+x.it.criteria.length+'.')+'</p>').join('');
+    const rk=Object.keys(reasons);
+    if(rk.length) h+='<h3>Почему были ошибки</h3><p>'+rk.map(k=>esc(RL[k])+' — '+reasons[k]).join(' · ')+'</p>';
+    if(t){
+      h+='<h3>Объясните взрослому за 2 минуты</h3><p>Без учебника и телефона расскажите, '+txt(t.explain)+'. Пусть взрослый трижды спросит «а почему?». Если объяснение рассыпается на втором «почему», тему стоит повторить.</p>';
+      h+='<h3>Занятие с ИИ-репетитором</h3><p>Запрос соберётся из ошибок этого занятия: ИИ будет задавать вопросы, а не выдавать ответы. Алисой AI подросток пользуется с согласия родителей.</p>'+
+        '<button type="button" class="cta secondary" id="tutorBtn">📋 Скопировать запрос для репетитора</button>';
+    }
+    box.innerHTML=h; box.className='lesson show';
+    const tb=$('tutorBtn'); if(tb) tb.onclick=()=>copyText(buildTutorPrompt(s,t),'Запрос скопирован. Вставьте его в чат с ИИ и сначала отвечайте сами.');
+  }
+  function buildTutorPrompt(s,t){
+    const CL={sure:'знаю',unsure:'сомневаюсь',guess:'угадываю'}, RL={}; WHY_R.forEach(([k,l])=>{RL[k]=l.toLowerCase();});
+    const rows=s.questions.map((it,i)=>({it,a:s.answers[i]}));
+    const wrong=rows.filter(x=>x.it&&!x.it.noScore&&!x.it.retry&&x.a===false).map(x=>x.it);
+    const draw=s.questions.find(it=>it&&it.type==='draw'&&it.score!=null&&it.score<it.elements.length);
+    const p2=s.questions.find(it=>it&&it.type==='part2'&&it.score!=null&&it.score<it.criteria.length);
+    let p='Ты репетитор по биологии для ученика 9 класса. Тема: «'+t.title+'». Источник фактов — '+t.books+'. Если твой ответ расходится с учебником, прямо скажи об этом.\n\n';
+    if(wrong.length||draw||p2){
+      p+='Разберём мои ошибки этого занятия:\n';
+      wrong.forEach((it,i)=>{
+        p+=(i+1)+') Вопрос: '+it.q+'\n';
+        if(it.recallText) p+='   Мой ответ своими словами: «'+it.recallText+'»\n';
+        if(it.pick!=null) p+='   Мой выбор: '+(Array.isArray(it.pick)?it.pick.join('; '):it.pick)+(it.pickReason?'; обоснование: '+it.pickReason:'')+'\n';
+        if(it.conf) p+='   Уверенность: '+CL[it.conf]+'\n';
+        if(it.reason) p+='   Причина ошибки, как я её вижу: '+RL[it.reason]+'\n';
+      });
+      if(draw) p+='— На схеме по памяти не хватило: '+draw.elements.filter(e=>!draw.pick.includes(e.text)).map(e=>lcFirst(e.text)).join(', ')+'.\n';
+      if(p2) p+='— Задание с развёрнутым ответом, моя самооценка '+p2.score+' из '+p2.criteria.length+'. Задание: '+p2.q+'\n   Мой ответ: «'+p2.answerText+'»\n';
+      p+='\n';
+    } else p+='Ошибок в этом занятии не было. Проверь, понимаю ли я тему: задай мне 5 вопросов «почему» и «что будет, если» — по одному.\n\n';
+    p+='Правила:\n1. Не давай готовых ответов и объяснений, пока я не попробую сам. Начни с вопроса, что я уже знаю.\n'+
+      '2. Задавай по одному вопросу и жди моего ответа.\n3. Спрашивай про механизм: почему, что будет, если, чем отличается.\n'+
+      '4. Если я ошибся, дай наводящую подсказку, а не ответ. После двух неудачных попыток объясни коротко и попроси пересказать своими словами.\n'+
+      '5. Если я настаиваю на неверном, не соглашайся из вежливости: приведи факт или контрпример.\n6. Не рисуй картинки клеток и органов.\n'+
+      '7. В конце попроси меня изложить тему в 3–5 предложениях и дай 3 вопроса, чтобы ответить на них по памяти через 3 дня.';
+    return p;
+  }
+  function buildPart2Prompt(it){
+    return 'Ты учитель биологии. Оцени мой ответ строго по элементам ниже: за каждый элемент 1 балл, только если он явно есть в ответе. '+
+      'Не пиши правильный ответ целиком — скажи, каких элементов не хватает, и задай наводящий вопрос.\n\n'+
+      'Задание: '+it.q+'\n\nЭлементы ответа:\n'+it.criteria.map((c,i)=>(i+1)+') '+c).join('\n')+
+      '\n\nМой ответ: «'+(it.answerText||'')+'»\nМоя оценка: '+(it.score!=null?it.score:'?')+' из '+it.criteria.length+'.';
+  }
+
   function show(view){
     login.style.display = view==='login'?'block':'none';
     menu.style.display = view==='menu'?'block':'none';
@@ -1404,7 +1739,11 @@
     if(menu.style.display!=='block'){show('menu');window.scrollTo({top:0});focusMenu();}
   });
   // при возврате в меню фокус — на первое действие, а не в скрытый экран
-  function focusMenu(){const f=[$('resumeBtn'),$('resumeSideBtn'),$('reviewTodayBtn'),$('fixMenuBtn'),$('mixedBtn')].find(b=>b.style.display!=='none'); if(f)f.focus({preventScroll:true});}
+  function focusMenu(){
+    const f=[$('resumeBtn'),$('resumeSideBtn'),$('reviewTodayBtn'),$('fixMenuBtn')].find(b=>b.style.display!=='none')
+      ||{hub:$('modeBlitz'),chapters:$('chaptersBack'),topics:$('topicsBack')}[menuPage];
+    if(f)f.focus({preventScroll:true});
+  }
 
   // ---- Повторение на сегодня ----
   // Берём вопросы, чей срок подошёл, раньше всего просроченные; за раз не больше REVIEW_MAX, чтобы сессия была короткой.
@@ -1449,8 +1788,8 @@
     // иначе один верный ответ из смешанного теста рисовал бы «100%» у непройденной главы
     const latest=latestByQ();
     const cp=$('chapterProgress'); cp.innerHTML='';
-    Object.keys(QUIZ).forEach(ck=>{
-      const qs=QUIZ[ck].questions;
+    Object.keys(SEC).forEach(ck=>{
+      const qs=SEC[ck].questions.filter(counted);
       let attempted=0, mastered=0;
       // угаданный ответ и верный ответ до срока повторения (из рабочей памяти) ещё не освоение
       qs.forEach(raw=>{const h=latest[raw.id]; if(h){attempted++; if(masteredBy(h))mastered++;}});
@@ -1458,7 +1797,7 @@
       const col=attempted===0?'var(--muted)':mastered/qs.length>=0.7?'var(--green)':'var(--amber)';
       const row=document.createElement('div'); row.className='progress-row';
       row.title=attempted?'Отвечено '+attempted+' из '+qs.length+'. Верно по последнему ответу, без угаданных и ответов раньше срока повторения: '+accuracy+'%':'Глава ещё не начата';
-      row.innerHTML='<div class="pl">'+QUIZ[ck].icon+' '+esc(QUIZ[ck].title)+'</div>'+
+      row.innerHTML='<div class="pl">'+SEC[ck].icon+' '+esc(SEC[ck].title)+'</div>'+
         '<div class="mini"><i style="width:'+Math.round(mastered/qs.length*100)+'%;background:'+col+'"></i></div>'+
         '<div class="pv">'+(attempted?mastered+' из '+qs.length:'—')+'</div>';
       cp.appendChild(row);
@@ -1473,13 +1812,13 @@
       det.appendChild(sm); ml.appendChild(det);
       const byCh={};
       mistakes.forEach(m=>{(byCh[m.ch]=byCh[m.ch]||[]).push(m);});
-      Object.keys(QUIZ).forEach(ck=>{
+      Object.keys(SEC).forEach(ck=>{
         (byCh[ck]||[]).forEach(m=>{
           const meta=qLookup[m.id]; if(!meta)return;
           const item=prep(meta.raw);
           const el=document.createElement('div'); el.className='mistake';
           const e=user.srs[m.id];
-          el.innerHTML='<div class="mch">'+esc(QUIZ[ck].title)+' · повторение '+(isDue(e)?'сейчас':fmtWhen(dueAt(e)))+'</div>'+
+          el.innerHTML='<div class="mch">'+esc(SEC[ck].title)+' · повторение '+(isDue(e)?'сейчас':fmtWhen(dueAt(e)))+'</div>'+
             '<div class="mq">'+txt(meta.raw.q)+'</div>'+
             '<div class="mans">'+correctAnswerHTML(item)+'</div>'+
             '<div class="mwhy">'+txt(meta.raw.why)+'</div>';
@@ -1498,6 +1837,8 @@
     if(t==='match') return q.left.map((l,i)=>l+' → '+q.right[i]).join('; ');
     if(t==='order') return q.items.map((x,i)=>(i+1)+'. '+x).join('; ');
     if(t==='twotier') return q.options[q.correct]+' — обоснование: '+q.reasons[q.reasonCorrect];
+    if(t==='draw') return q.elements.map(e=>e.text).join('; ');
+    if(t==='part2') return q.model;
     return '';
   }
   function safe(s){return String(s).replace(/[^0-9A-Za-zА-Яа-яЁё_-]+/g,'_');}
@@ -1537,7 +1878,7 @@
     const last=latestByQ();
     return currentMistakes().map(m=>{
       const raw=qLookup[m.id].raw, e=user.srs[m.id], l=last[m.id];
-      return {chapter:m.ch, chapterTitle:QUIZ[m.ch]?QUIZ[m.ch].title:m.ch,
+      return {chapter:m.ch, chapterTitle:secTitle(m.ch),
         status:(l&&!l.correct)?'ошибка':(l&&l.conf==='guess'?'угадано':'закрепляется'),
         box:e.box, due:e.due?new Date(dueAt(e)).toISOString():null,
         type:raw.type||'single', question:raw.q,
@@ -1554,7 +1895,7 @@
     const CL={sure:'знаю',unsure:'сомневаюсь',guess:'угадываю'};
     const rows=[['datetime','chapter','session','result','attempt','confidence','question']];
     user.history.forEach(h=>{
-      rows.push([localStamp(h.t,true), QUIZ[h.ch]?QUIZ[h.ch].title:h.ch, h.mode==='review'?'повторение':h.mode==='practice'?'работа над ошибками':'тест', h.correct?'верно':'ошибка', (h.mode==='practice'?h.again:h.retry)?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
+      rows.push([localStamp(h.t,true), secTitle(h.ch), h.mode==='review'?'повторение':h.mode==='practice'?'работа над ошибками':'тест', h.correct?'верно':'ошибка', (h.mode==='practice'?h.again:h.retry)?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
     });
     const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
     download('bio-istoriya-'+safe(user.name)+'-'+dstamp()+'.csv', '﻿'+csv, 'text/csv;charset=utf-8');
@@ -1628,7 +1969,11 @@
   }
 
   // ---- Wiring ----
-  $('mixedBtn').onclick=startMixed;
+  $('modeBlitz').onclick=startMixed;
+  $('modeFull').onclick=()=>setMenuPage('chapters');
+  $('modeTopic').onclick=()=>setMenuPage('topics');
+  $('chaptersBack').onclick=()=>setMenuPage('hub');
+  $('topicsBack').onclick=()=>setMenuPage('hub');
   // прохождение сохранено — выход его не обнуляет, продолжить можно из меню;
   // спрашиваем, только если сохранить не удалось (память браузера недоступна)
   $('quitBtn').onclick=()=>{
@@ -1646,6 +1991,7 @@
     if(!session)return;
     if(session.key==='__mixed') startMixed();
     else if(session.key==='__review'||session.key==='__fix') startReview();
+    else if(TOPICS_[session.key]) startTopic(session.key);
     else {startQuiz(session.key); say($('flowSupport'),'retry');}
   };
   $('fixBtn').onclick=startFix;
