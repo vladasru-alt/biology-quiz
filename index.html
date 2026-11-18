@@ -275,6 +275,63 @@
   .lesson h3{font-size:15px;margin:12px 0 6px} .lesson h3:first-child{margin-top:0}
   .lesson p{margin:6px 0}
   .lesson .cta{margin:12px 0 0}
+
+  /* Эхо занятия: отложенная проверка через 7 и 21 день */
+  #readText{min-height:64px}
+  .echo{margin:22px 0 6px;padding:14px 16px;border:1px solid rgba(56,189,248,.35);border-radius:14px;background:rgba(56,189,248,.06)}
+  .echo p{margin:0 0 10px;font-size:14px;line-height:1.5}
+  .echo .echorow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .echo .cta{width:auto;flex:1 1 220px;margin:0}
+
+  /* Игровой слой (game.js): свет и герои. Тёплый янтарный, без красного; внутри вопроса героев нет */
+  .ghub,.gtopic,.gstrip,.gres{border:1px solid rgba(240,180,41,.35);border-radius:14px;background:linear-gradient(90deg,rgba(240,180,41,.08),rgba(240,180,41,.02))}
+  .ghub{margin:18px 0 0;padding:12px 14px}
+  .gtopic{margin:16px 0 0;padding:12px 14px}
+  .gstrip{margin:10px 0 0;padding:8px 12px}
+  .gres{text-align:left;margin:14px 0 4px;padding:14px 16px;font-size:14px;line-height:1.55}
+  .gtop{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:13.5px}
+  .gname{font-weight:700;color:var(--amber)}
+  .gmeta{color:var(--muted);font-size:13px}
+  .gtop .gmeta{font-size:13.5px}
+  .gweek{margin-left:auto;color:var(--muted)}
+  .gbars{display:inline-flex;gap:5px;align-items:center}
+  .gbars i{width:11px;height:11px;border-radius:50%;border:1.5px solid var(--amber);display:inline-block;box-sizing:border-box}
+  .gbars i.on{background:var(--amber)}
+  .gbars i.now{background:linear-gradient(90deg,var(--amber) 50%,transparent 50%)}
+  .gsay{margin:8px 0 0;font-size:13.5px;line-height:1.5;color:var(--ink)}
+  .gsay b{color:var(--amber)}
+  .gn{margin:4px 0 0;color:var(--amber);font-size:13px}
+  .grow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+  .gline{display:none;margin-top:10px;padding-left:2px}
+  .gline.show{display:block;animation:fade .3s ease}
+  .gq{font-size:13.5px;font-weight:600;margin:12px 0 4px}
+  .gexp,.gfb{margin-top:6px}
+  .gfb label{display:block;font-size:13px;margin:8px 0 4px;color:var(--muted)}
+  .gfb textarea{width:100%;box-sizing:border-box;resize:vertical;background:var(--bg2);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;font-size:14.5px}
+  .gfb .ghost{margin-top:8px}
+  .glink{display:block;margin:16px auto 0;font:inherit;font-size:13.5px;background:transparent;border:1px dashed rgba(240,180,41,.45);color:var(--muted);border-radius:20px;padding:8px 16px;cursor:pointer;min-height:40px}
+  .glink:hover{color:var(--ink);border-color:var(--amber)}
+  .gview{display:none}
+  .gview [tabindex="-1"]:focus,.gres [tabindex="-1"]:focus,.lesson [tabindex="-1"]:focus{outline:none}
+  .gh3{font-size:16px;margin:22px 0 10px}
+  .gcard{display:flex;gap:12px;align-items:flex-start;background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0;font-size:14px;line-height:1.5}
+  .gcb{min-width:0;flex:1}
+  .gcb>p:first-child{margin:2px 0 0}
+  .gic{flex:0 0 36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(240,180,41,.12);color:var(--amber)}
+  .glight{display:block;width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,#fff6d5 0%,rgba(240,180,41,.75) 38%,rgba(240,180,41,0) 72%);opacity:.3}
+  .glight.l1{opacity:.42}.glight.l2{opacity:.55}.glight.l3{opacity:.68}.glight.l4{opacity:.8}.glight.l5{opacity:.9}
+  .glight.l6{opacity:1;box-shadow:0 0 16px rgba(240,180,41,.65)}
+  .gmyth{margin:12px 0;padding:12px 14px;border-left:3px solid var(--amber);background:var(--bg2);border-radius:8px;font-size:16px;font-weight:600}
+  .gset{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:10px 0;font-size:14px}
+  .gset>span:first-child{flex:0 0 120px;color:var(--muted)}
+  .gset .grow{margin-top:0}
+  .gadult{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+  .gadult summary{cursor:pointer;color:var(--muted);font-size:14px;padding:4px 0;min-height:32px}
+  .gdl{display:grid;grid-template-columns:minmax(150px,40%) 1fr;gap:6px 12px;font-size:13.5px;margin:10px 0}
+  .gdl dt{color:var(--muted)} .gdl dd{margin:0}
+  .gword{font-size:13.5px;background:var(--bg2);border-radius:10px;padding:8px 12px;margin:6px 0}
+  @media(max-width:520px){.gdl{grid-template-columns:1fr}.gdl dd{margin-bottom:6px}.gweek{margin-left:0}.gset>span:first-child{flex-basis:100%}}
+  @media(prefers-reduced-motion:reduce){.gline.show,.explain.show,.hook.show,.support.show,.chip{animation:none}}
 </style>
 </head>
 <body>
@@ -307,13 +364,20 @@
     <button class="cta" id="resumeSideBtn" style="display:none"></button>
     <button class="cta" id="reviewTodayBtn" style="display:none"></button>
     <button class="cta secondary" id="fixMenuBtn" style="display:none"></button>
+    <!-- эхо занятия: через 7 и 21 день — вопросы, на которые в занятии ответ был верным -->
+    <div class="echo" id="echoOffer" style="display:none">
+      <p id="echoText"></p>
+      <div class="echorow"><button type="button" class="cta" id="echoGo"></button><button type="button" class="ghost" id="echoLater">Позже</button></div>
+    </div>
     <!-- стартовая страница: три режима -->
     <div id="hubView">
+      <div class="ghub" id="gHub" style="display:none"></div>
       <div class="modes">
         <button type="button" class="mode" id="modeBlitz"><span class="mi">⏱</span><b>Блиц-тест</b><span class="md">10 случайных вопросов из всех глав — около 5 минут</span></button>
         <button type="button" class="mode" id="modeFull"><span class="mi">📚</span><b>Полный тест по главам</b><span class="md">10 глав учебника: все вопросы главы подряд, ошибки возвращаются</span></button>
         <button type="button" class="mode new" id="modeTopic"><span class="mi">🧪</span><b>Тренажёр по теме</b><span class="tagnew">Новый формат</span><span class="md">Сначала вспомнить, потом выбрать. Схемы, рисунок по памяти, опыт с объяснением</span></button>
       </div>
+      <button type="button" class="glink" id="gameBtn" style="display:none">✨ Свет и герои</button>
     </div>
     <div id="chaptersView" style="display:none">
       <button type="button" class="backlink" id="chaptersBack">← Все режимы</button>
@@ -325,6 +389,7 @@
       <button type="button" class="backlink" id="topicsBack">← Все режимы</button>
       <h2 class="vh">Тренажёр по теме</h2>
       <p class="vsub">Занятие по шагам: вопросы до чтения, учебник, вопросы с шагом «Сначала вспомните», схемы, рисунок по памяти и опыт с объяснением. В зачёт идут вопросы после чтения.</p>
+      <div id="gTopic" style="display:none"></div>
       <div class="grid" id="topicGrid"></div>
     </div>
     <footer>
@@ -341,6 +406,7 @@
       <div class="qcount" id="qCount"></div>
     </div>
     <div class="bar"><i id="qBar"></i></div>
+    <div class="gstrip" id="gStrip" style="display:none"></div>
     <div class="hook" id="qHook"></div>
     <div class="support" id="flowSupport"></div>
     <div class="achv" id="achvLive"></div>
@@ -354,6 +420,7 @@
       <div class="opts" id="qOpts"></div>
       <button class="checkbtn" id="qCheck" style="display:none">Проверить ответ</button>
       <div class="explain" id="qExplain"></div>
+      <div class="gline" id="qGame"></div>
       <div class="whychips" id="qWhy"></div>
       <div class="support" id="qSupport"></div>
       <div class="qnav">
@@ -379,6 +446,7 @@
     <div class="verdict" id="rVerdict" tabindex="-1" aria-describedby="rPct rFrac rSum"></div>
     <div class="rsum" id="rSum"></div>
     <div class="rsum2" id="rStats"></div>
+    <div class="gres" id="rGame" style="display:none"></div>
     <div class="lesson" id="rLesson"></div>
     <div class="support" id="rSupport" style="text-align:left"></div>
     <div class="achv" id="rAchv" style="justify-content:center"></div>
@@ -417,9 +485,16 @@
     <button class="cta secondary" id="dashHomeBtn" style="margin-top:18px">← В меню</button>
     <button class="cta secondary" id="clearHistBtn" style="margin-top:8px;border-color:rgba(229,83,75,.4);color:#e5867f">Очистить историю ответов</button>
   </section>
+
+  <!-- Свет и герои: игровой слой (game.js) -->
+  <section class="gview" id="gameView">
+    <button type="button" class="backlink" id="gameBack">← В меню</button>
+    <div id="gameBody"></div>
+  </section>
 </div>
 
 <script src="quiz-data.js"></script>
+<script src="game.js"></script>
 <script>
 (function(){
   const $=id=>document.getElementById(id);
@@ -434,6 +509,10 @@
   // ---- User accounts (username only, stored per-device) ----
   const CUR='bio_current_user';
   let user=null;
+  // Игровой слой (game.js) только слушает события тренажёра: очередь повторения, историю и освоение он не меняет.
+  // Ошибка внутри игры не должна ломать занятие — поэтому каждый вызов идёт через try/catch
+  let game=null;
+  function G(m,...a){if(!game||typeof game[m]!=='function')return; try{return game[m](...a);}catch(e){try{console.error('game:',e);}catch(_){}}}
   // История привязана к постоянному id вопроса: правка формулировки не должна стирать прогресс ученика.
   const qLookup={}, idByText={};
   // Тренажёр по теме — отдельный от глав раздел (TOPICS в файле данных): занятие по шагам в новом формате.
@@ -472,6 +551,7 @@
     // короткая сессия, сохранённая до разделения на два места, переезжает к себе сразу,
     // а не при первом чтении — иначе меню успело бы решить, что сохранённого повторения нет
     if(!reread) loadSavedSession('main');
+    G('user',n);
   }
   let saveWarned=false, userSaveOk=true;
   function saveUser(){
@@ -537,10 +617,17 @@
     // в повторение попадают только трудные вопросы — в общую точность такие ответы не берём
     if(session.key==='__review') rec.mode='review';
     if(session.practice) rec.mode='practice';
+    // эхо занятия — отложенная проверка через 7 и 21 день: какое именно, нужно для его срока и для метрик
+    if(session.echo){rec.mode='echo'; rec.echo=session.echo;}
     user.history.push(rec);
     trimHistory();
+    // игре — запись очереди до и после ответа: по ним она видит переходы (ошибка исправлена, ответ выдержал неделю)
+    const prev=user.srs[curItem.id], before=prev?Object.assign({},prev):null, wasDue=isDue(prev);
     srsUpdate(curItem.id,!!correct,again,curItem.conf);
     saveUser();
+    const aft=user.srs[curItem.id];
+    G('answer',{id:curItem.id, correct:!!correct, conf:curItem.conf||null, again, mode:rec.mode||'', echo:session.echo||'',
+      key:session.key, before, after:aft?Object.assign({},aft):null, wasDue});
   }
   // История ограничена 3000 записями. Сначала выбрасываем старые повторы и работу над ошибками: на освоение
   // и точность они не влияют. Затем — старые ответы на вопрос, у которого есть ответ новее: последний ответ
@@ -572,7 +659,8 @@
   const RECALL_HINT='Ответьте своими словами — варианты появятся после. Этот ответ не оценивается: он нужен, чтобы вспомнить, а не узнать.';
   const PRE_HINT='Ответьте, как думаете: ошибаться здесь нормально. Вопрос до чтения настраивает внимание и не идёт в зачёт.';
   // «Почему я ошибся» — самооценка после ошибки в тренажёре по теме; попадает в историю и в запрос для репетитора
-  const WHY_R=[['fact','Не знал факт'],['mixed','Перепутал понятия'],['logic','Ошибся в рассуждении'],['read','Невнимательно прочитал']];
+  // подписи без рода: тренажёр не угадывает, «знал» ученик или «знала»
+  const WHY_R=[['fact','Не знаю факт'],['mixed','Перепутаны понятия'],['logic','Ошибка в рассуждении'],['read','Невнимательно прочитано']];
 
   let session=null, curItem=null;
 
@@ -580,7 +668,7 @@
   // Глава — 50-70 вопросов, и на телефоне вкладку часто выгружают или закрывают жестом «назад».
   // Прохождение пишется после каждого ответа, чтобы его можно было продолжить, а не начинать заново.
   const SESS_FIELDS=['key','title','idx','total','answers','wrongStreak','rightStreak','target','topicCount',
-    'shown','earned','topicHits','focusShown','hadDoubleMiss','lastFlowAt','practice','base','ordered'];
+    'shown','earned','topicHits','focusShown','hadDoubleMiss','lastFlowAt','practice','base','ordered','echo'];
   // Мест два: глава (длинная, её жалко терять) и короткие сессии — повторение, смешанный тест,
   // работа над ошибками. Иначе ежедневное «Повторение» затирало бы незаконченную главу.
   // служебные сессии начинаются с «__», главы и занятия по теме — длинные, им своё место
@@ -826,6 +914,18 @@
     const fx=user&&!(sideSaved&&sideSaved.key==='__fix')?loadFix():null, fm=$('fixMenuBtn');
     fm.style.display=fx?'':'none';
     if(fx) fm.textContent='🎯 Работа над ошибками'+(fx.base?': '+fx.base:'')+' ('+fx.ids.length+')';
+    // эхо занятия: через 7 и 21 день — пять вопросов, на которые в занятии ответ был верным. Пока эхо
+    // сохранено как незаконченное, его продолжают через «Продолжить»
+    const eo=$('echoOffer'), ei=user&&!(sideSaved&&sideSaved.key==='__echo')&&!echoSnoozed()
+      ?Object.keys(TOPICS_).map(echoInfo).find(x=>x&&x.which)||null:null;
+    eo.style.display=ei?'':'none';
+    if(ei){
+      const tt=TOPICS_[ei.key].title;
+      $('echoText').innerHTML=G('echoText',ei)||txt((ei.which==='d21'?'Три недели после занятия «':'Неделя после занятия «')+tt+
+        '». '+(ei.ids.length>1?'Несколько вопросов':'Вопрос')+' по памяти: сначала ответ своими словами, пояснения — в конце.');
+      $('echoGo').textContent='▶ Эхо занятия — '+ei.ids.length+' вопр.';
+      $('echoGo').onclick=()=>startEcho(ei.key);
+    }
     // на карточке — освоение, а не лучший процент: сразу повторённая глава даёт высокий процент за счёт
     // узнавания только что виденных вариантов. Освоен вопрос, если последний ответ верен и не угадан,
     // а после ошибки — если он хотя бы раз верно повторён в срок (masteredBy)
@@ -864,6 +964,7 @@
     Object.keys(QUIZ).forEach(key=>grid.appendChild(card(key,QUIZ[key],false)));
     const tg=$('topicGrid'); tg.innerHTML='';
     Object.keys(TOPICS_).forEach(key=>tg.appendChild(card(key,TOPICS_[key],true)));
+    G('menu');
   }
   let menuPage='hub';
   function setMenuPage(p){menuPage=p; renderMenu(); window.scrollTo({top:0}); focusMenu();}
@@ -996,6 +1097,46 @@
     beginSession(null,'quizStart');
   }
 
+  // ---- Эхо занятия: отложенная проверка верных ответов через 7 и 21 день ----
+  // В повторение возвращаются только ошибки, а знание по верным ответам со временем тоже слабеет.
+  // Эхо — до пяти вопросов занятия, на которые ответ был верным и не угаданным: сначала свой ответ словами,
+  // потом варианты, пояснения — в итогах. Ошибка в эхе уходит в повторение, как любая ошибка.
+  // Всё считается по истории ответов, отдельно ничего не хранится.
+  const ECHO_N=5, ECHO_LATER='bio_echo_later_';
+  // начало занятия — первый ответ в нём: вопросы до чтения и чтение в историю не пишутся
+  function lessonStart(key){const h=user?user.history.find(h=>h.ch===key&&!h.mode&&!h.retry):null; return h?h.t:null;}
+  function echoInfo(key){
+    const t=TOPICS_[key]; if(!user||!t)return null;
+    const hist=user.history.filter(h=>h.ch===key);
+    const L=(hist.find(h=>!h.mode&&!h.retry)||{}).t; if(!L)return null;
+    const done={}; hist.forEach(h=>{if(h.mode==='echo'&&(h.echo==='d7'||h.echo==='d21'))done[h.echo]=Math.max(done[h.echo]||0,h.t);});
+    const today=dayStart(Date.now()), age=Math.round((today-dayStart(L))/DAY);
+    const d21at=Math.max(dayStart(L)+21*DAY,done.d7?dayStart(done.d7)+7*DAY:0);
+    let which=null;
+    if(!done.d21&&today>=d21at) which='d21';
+    else if(!done.d7&&!done.d21&&age>=7) which='d7';
+    // вопросы с шагом «Сначала вспомните», на которые в первом прохождении ответ был верным и не угаданным
+    // и которых сейчас нет в очереди повторения: у тех свой путь к долгой памяти
+    const first={}; hist.forEach(h=>{if(!h.mode&&!h.retry&&!(h.id in first))first[h.id]=h;});
+    let ids=t.questions.filter(r=>r.recall&&counted(r)).map(r=>r.id).filter(id=>{const h=first[id], e=user.srs[id]; return h&&h.correct&&h.conf!=='guess'&&!(e&&e.box<SRS_DONE);});
+    // через три недели — в первую очередь те, что выдержали неделю: так видно, что держится дольше
+    if(which==='d21'){const ok7=new Set(hist.filter(h=>h.mode==='echo'&&h.echo==='d7'&&!h.retry&&h.correct&&h.conf!=='guess').map(h=>h.id));
+      ids=shuffle(ids.filter(id=>ok7.has(id))).concat(shuffle(ids.filter(id=>!ok7.has(id))));}
+    else ids=shuffle(ids);
+    ids=ids.slice(0,ECHO_N);
+    const nextAt=which?null:!done.d7&&!done.d21?dayStart(L)+7*DAY:!done.d21?d21at:null;
+    return {key, L, done, which:ids.length?which:null, ids, nextAt};
+  }
+  function echoSnoozed(){try{const v=+localStorage.getItem(ECHO_LATER+user.name); return !!v&&Date.now()<nextDayStart(v);}catch(e){return false;}}
+  function startEcho(key){
+    const info=echoInfo(key); if(!info||!info.which){renderMenu();return;}
+    const title=(info.which==='d21'?'📅 Эхо через три недели: ':'📅 Эхо через неделю: ')+TOPICS_[key].title;
+    if(!okToReplace('__echo',title))return;
+    session=makeSession('__echo',title,info.ids.map(id=>qLookup[id].raw),info.ids.length);
+    session.echo=info.which; session.base=key;
+    beginSession(null,'echoStart');
+  }
+
   // ---- Rendering dispatch ----
   function renderQuestion(){
     const s=session;
@@ -1024,6 +1165,7 @@
     qOpts.innerHTML='';
     qExplain.className='explain'; qExplain.innerHTML='';
     $('qLive').textContent='';
+    G('question');
     clearSay($('qSupport'));
     hideCheck(); qCheck.textContent='Проверить ответ';
     // вступление к главе — только перед первым вопросом, а реплики потока гаснут через два вопроса:
@@ -1079,6 +1221,7 @@
     qOpts.appendChild(box);
     const go=skip=>{
       curItem.recallText=skip?'':box.querySelector('textarea').value.trim(); curItem.recalled=true;
+      G('recall',{id:curItem.id, text:curItem.recallText, skip:!!skip});
       qOpts.innerHTML='';
       qBadge.textContent=(curItem.retry?'Ещё раз · ':'')+(BADGE[curItem.type]||'Вопрос');
       qHint.textContent=HINT[curItem.type]||'';
@@ -1091,12 +1234,21 @@
   // ---- Тренажёр по теме: чтение, рисунок со сверкой, задание с самопроверкой ----
   function renderRead(){
     const d=document.createElement('div'); d.className='read';
+    // после чтения — ответ одной фразой на один из вопросов в рамке, уже с закрытым учебником:
+    // так чтение заканчивается припоминанием. Поле по желанию
     d.innerHTML='<ul>'+curItem.points.map(p=>'<li>'+txt(p)+'</li>').join('')+'</ul>'+
       (curItem.look.length?'<div class="look"><b>Ищите в тексте ответы</b><ul>'+curItem.look.map(p=>'<li>'+txt(p)+'</li>').join('')+'</ul></div>':'')+
+      (curItem.look.length?'<div class="recall"><label for="readText">После чтения закройте учебник и ответьте одной фразой на один из вопросов в рамке</label>'+
+        '<textarea id="readText" rows="2" placeholder="По желанию: так чтение закончится припоминанием"></textarea></div>':'')+
       '<button type="button" class="checkbtn" id="readDone">Прочитано — к вопросам</button>';
     qOpts.appendChild(d);
     // чтение — не вопрос: одна кнопка и сразу к следующему шагу
-    $('readDone').onclick=()=>{$('readDone').disabled=true; commitTask(true,'<b>✓ Учебник можно закрыть.</b> Дальше вопросы: сначала ответ своими словами, потом варианты.'); qNext.click();};
+    $('readDone').onclick=()=>{
+      $('readDone').disabled=true;
+      const rt=$('readText'); curItem.readText=rt?rt.value.trim():'';
+      G('read',{id:curItem.id, text:curItem.readText});
+      commitTask(true,'<b>✓ Учебник можно закрыть.</b> Дальше вопросы: сначала ответ своими словами, потом варианты.'); qNext.click();
+    };
   }
   function toggleBox(b){
     b.type='button'; b.className='opt'; b.setAttribute('aria-pressed','false');
@@ -1128,6 +1280,7 @@
     if(user&&!session.practice){const now=Date.now();
       [...new Set(miss.map(e=>e.q).filter(id=>id&&qLookup[id]))].forEach(id=>{user.srs[id]={box:0,due:dueIn(1),set:now};});}
     const ok=!miss.length, n=curItem.elements.length;
+    G('task',{id:curItem.id, type:'draw', score:have.length, n});
     commitTask(ok,(ok?'<b>✓ Все части на месте.</b> ':'<b>◐ На рисунке '+have.length+' из '+n+'.</b> ')+txt(curItem.why)+
       (miss.length?' <i>Не хватило: '+esc(miss.map(e=>lcFirst(e.text)).join(', '))+'. Вопросы об этом и сам рисунок вернутся завтра — в повторении.</i>':''));
   }
@@ -1156,6 +1309,7 @@
       b.classList.add('locked'); b.classList.remove('sel'); b.onclick=null; b.removeAttribute('aria-pressed'); addSr(b,on?' — есть в ответе':' — нет в ответе');});
     hideCheck(); qCheck.textContent='Проверить ответ';
     const max=curItem.criteria.length, ok=k===max; curItem.score=k; curItem.pick=curItem.answerText;
+    G('task',{id:curItem.id, type:'part2', score:k, n:max});
     commitTask(ok,(ok?'<b>✓ Ваша оценка: ':'<b>◐ Ваша оценка: ')+k+' из '+max+'.</b><br><b>Эталон.</b> '+txt(curItem.model)+'<br>'+txt(curItem.why)+
       (ok?'':' <i>Задание вернётся завтра — в повторении.</i>')+
       '<br><button type="button" class="ghost" id="p2Ai">📋 Второе мнение: запрос для ИИ с критериями</button>');
@@ -1178,6 +1332,8 @@
     // «Проверить» скрыт, в упорядочивании кнопки отключены — фокус не должен остаться на пропавшем элементе
     const ae=document.activeElement;
     if(!ae||ae===document.body||ae.disabled||!ae.offsetParent) qNext.focus({preventScroll:true});
+    // строка игры — под пояснением и после него в живой области
+    G('reveal');
   }
   const lcFirst=s=>s.charAt(0).toLowerCase()+s.slice(1);
   function isTopicItem(it){const m=qLookup[it.id]; return !!(m&&TOPICS_[m.ch]);}
@@ -1191,6 +1347,7 @@
       box.querySelectorAll('.cchip').forEach(x=>{const on=x.dataset.k===curItem.reason;x.classList.toggle('on',on);x.setAttribute('aria-pressed',String(on));});
       if(user){for(let i=user.history.length-1;i>=0;i--){const h=user.history[i]; if(h.id===curItem.id){if(curItem.reason)h.reason=curItem.reason; else delete h.reason; break;}} saveUser();}
       persistSession();
+      if(curItem.reason) G('reason',{id:curItem.id, reason:curItem.reason});
     };});
   }
 
@@ -1295,6 +1452,7 @@
     // вопрос до чтения — разминка: без истории, повторения, повтора в сессии и серий
     if(curItem.pre){
       s.answers[s.idx]=correct; lockConf();
+      G('pre',{id:curItem.id, correct:!!correct});
       revealAnswer((correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+(curItem.misc?'<span class="mtag">Разбор заблуждения</span> ':'')+txt(curItem.why)+(note||'')+
         ' <i>Вопрос до чтения не идёт в зачёт: ответ вы встретите в учебнике.</i>');
       return;
@@ -1302,6 +1460,13 @@
     s.answers[s.idx]=correct;
     lockConf();
     recordAnswer(correct);
+    // эхо — проверка через паузу: без повтора в сессии, пояснения — в итогах, ошибка уходит в повторение
+    if(s.echo){
+      revealAnswer((correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+'<i>'+(!correct?'Вопрос вернётся завтра — в повторении. '
+        :curItem.conf==='guess'?'Вы отметили «Угадываю» — вопрос вернётся в повторении. ':'')+'Пояснение — в итогах эха.</i>');
+      if(!correct&&isTopicItem(curItem)) renderWhyChips();
+      return;
+    }
     // ошибку и угаданный ответ вернём через несколько вопросов (один раз)
     const again=(!correct||curItem.conf==='guess')&&scheduleRetry(s,curItem);
     let extra='';
@@ -1553,7 +1718,7 @@
     const ring=document.getElementById('ringFg');
     // работа над ошибками — тренировка сразу после разбора: процент не красим как оценку
     // в повторение попадают только трудные вопросы — низкий процент там ожидаем, красить его как оценку нельзя
-    const neutral=s.practice||s.key==='__review';
+    const neutral=s.practice||s.key==='__review'||!!s.echo;
     ring.style.stroke = neutral?'var(--muted)':pct>=70?'var(--green)':'var(--amber)';
     ring.style.transition='none'; ring.style.strokeDashoffset='465';
     requestAnimationFrame(()=>{ring.style.transition='stroke-dashoffset 1s ease';ring.style.strokeDashoffset=off;});
@@ -1563,6 +1728,7 @@
     const anyGuess=first.some(x=>x.a&&s.questions[x.i].conf==='guess');
     v.textContent=s.practice?'Исправлено '+correct+' из '+first.length+'. Проверка — в повторении, не раньше завтра'
       :s.key==='__review'?'Вспомнили после паузы '+correct+' из '+first.length+(correct<first.length?'. Ошибки вернутся завтра':anyGuess?'. Угаданные вернутся завтра':'')
+      :s.echo?'Вспомнили через '+(s.echo==='d21'?'три недели ':'неделю ')+correct+' из '+first.length+(correct<first.length?'. Ошибки вернутся завтра — в повторении':anyGuess?'. Угаданные вернутся в повторении':'')
       :s.key==='__mixed'?(L.mixed||L.label||''):(L.label||'');
     v.className='verdict '+(neutral?'neutral':pct>=70?'good':'mid');
     document.getElementById('rSum').textContent=s.title;
@@ -1608,6 +1774,9 @@
       rt.style.display=dueNow?'':'none';
       const reviewFirst=s.key==='__review'&&dueNow;
       rt.className='cta'+(!reviewFirst&&fixIds.length?' secondary':''); fb.className='cta'+(reviewFirst?' secondary':'');
+    } else if(s.echo){
+      // эхо не перепроходят: повторное прохождение сразу после пояснений проверяло бы узнавание, а не память
+      rt.style.display='none'; rt.className='cta secondary'; fb.className='cta';
     } else {
       rt.textContent=s.key==='__mixed'?'⏱ Новый блиц-тест':TOPICS_[s.key]?'↻ Пройти занятие заново':'↻ Пройти главу заново'; rt.style.display='';
       rt.className='cta'+(fixIds.length?' secondary':''); fb.className='cta';
@@ -1654,6 +1823,7 @@
       right.forEach(i=>d.appendChild(card(i))); rev.appendChild(d);
     }
 
+    G('finish',s);
     show('results');
     window.scrollTo({top:0,behavior:'smooth'});
     $('rVerdict').focus({preventScroll:true});
@@ -1675,8 +1845,9 @@
     const rk=Object.keys(reasons);
     if(rk.length) h+='<h3>Почему были ошибки</h3><p>'+rk.map(k=>esc(RL[k])+' — '+reasons[k]).join(' · ')+'</p>';
     if(t){
-      h+='<h3>Объясните взрослому за 2 минуты</h3><p>Без учебника и телефона расскажите, '+txt(t.explain)+'. Пусть взрослый трижды спросит «а почему?». Если объяснение рассыпается на втором «почему», тему стоит повторить.</p>';
-      h+='<h3>Занятие с ИИ-репетитором</h3><p>Запрос соберётся из ошибок этого занятия: ИИ будет задавать вопросы, а не выдавать ответы. Алисой AI подросток пользуется с согласия родителей.</p>'+
+      // места для игры: отметка «объяснение выдержало три „почему“» и реплика перед запросом для ИИ
+      h+='<h3>Объясните взрослому за 2 минуты</h3><p>Без учебника и телефона расскажите, '+txt(t.explain)+'. Пусть взрослый трижды спросит «а почему?». Если объяснение рассыпается на втором «почему», тему стоит повторить.</p><div id="explainGame"></div>';
+      h+='<h3>Занятие с ИИ-репетитором</h3><p>Запрос соберётся из ошибок этого занятия: ИИ будет задавать вопросы, а не выдавать ответы. Алисой AI подросток пользуется с согласия родителей.</p><div id="aiGame"></div>'+
         '<button type="button" class="cta secondary" id="tutorBtn">📋 Скопировать запрос для репетитора</button>';
     }
     box.innerHTML=h; box.className='lesson show';
@@ -1689,6 +1860,8 @@
     const draw=s.questions.find(it=>it&&it.type==='draw'&&it.score!=null&&it.score<it.elements.length);
     const p2=s.questions.find(it=>it&&it.type==='part2'&&it.score!=null&&it.score<it.criteria.length);
     let p='Ты репетитор по биологии для ученика 9 класса. Тема: «'+t.title+'». Источник фактов — '+t.books+'. Если твой ответ расходится с учебником, прямо скажи об этом.\n\n';
+    const rd=s.questions.find(it=>it&&it.type==='read'&&it.readText);
+    if(rd) p+='Мой ответ одной фразой сразу после чтения, с закрытым учебником: «'+rd.readText+'»\n\n';
     if(wrong.length||draw||p2){
       p+='Разберём мои ошибки этого занятия:\n';
       wrong.forEach((it,i)=>{
@@ -1722,12 +1895,14 @@
     quizEl.style.display = view==='quiz'?'block':'none';
     resultsEl.style.display = view==='results'?'block':'none';
     dash.style.display = view==='dash'?'block':'none';
+    $('gameView').style.display = view==='game'?'block':'none';
     userbar.style.display = (user && view!=='login')?'flex':'none';
     if(view==='menu') renderMenu();
     if(view==='dash') renderDash();
-    // жест или кнопка «назад» на телефоне из теста, итогов и кабинета ведёт к списку глав, а не уводит с сайта
+    if(view==='game') G('view');
+    // жест или кнопка «назад» на телефоне из теста, итогов, кабинета и «Света и героев» ведёт к списку глав, а не уводит с сайта
     try{
-      const sub=view==='quiz'||view==='results'||view==='dash', inSub=!!(history.state&&history.state.sub);
+      const sub=view==='quiz'||view==='results'||view==='dash'||view==='game', inSub=!!(history.state&&history.state.sub);
       if(sub&&!inSub) history.pushState({sub:1},'');
       else if(!sub&&inSub) history.back();
     }catch(e){}
@@ -1741,6 +1916,7 @@
   // при возврате в меню фокус — на первое действие, а не в скрытый экран
   function focusMenu(){
     const f=[$('resumeBtn'),$('resumeSideBtn'),$('reviewTodayBtn'),$('fixMenuBtn')].find(b=>b.style.display!=='none')
+      ||($('echoOffer').style.display!=='none'?$('echoGo'):null)
       ||{hub:$('modeBlitz'),chapters:$('chaptersBack'),topics:$('topicsBack')}[menuPage];
     if(f)f.focus({preventScroll:true});
   }
@@ -1895,7 +2071,7 @@
     const CL={sure:'знаю',unsure:'сомневаюсь',guess:'угадываю'};
     const rows=[['datetime','chapter','session','result','attempt','confidence','question']];
     user.history.forEach(h=>{
-      rows.push([localStamp(h.t,true), secTitle(h.ch), h.mode==='review'?'повторение':h.mode==='practice'?'работа над ошибками':'тест', h.correct?'верно':'ошибка', (h.mode==='practice'?h.again:h.retry)?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
+      rows.push([localStamp(h.t,true), secTitle(h.ch), h.mode==='review'?'повторение':h.mode==='practice'?'работа над ошибками':h.mode==='echo'?'эхо занятия':'тест', h.correct?'верно':'ошибка', (h.mode==='practice'?h.again:h.retry)?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
     });
     const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
     download('bio-istoriya-'+safe(user.name)+'-'+dstamp()+'.csv', '﻿'+csv, 'text/csv;charset=utf-8');
@@ -1922,6 +2098,8 @@
     let fix=null; try{fix=JSON.parse(localStorage.getItem(fixKey())||'null');}catch(e){}
     const data={app:'bio-quiz-backup', v:1, name:user.name, savedAt:new Date().toISOString(),
       best:user.best, history:user.history, srs:user.srs, sessions:sess, fix};
+    // игровые данные — отдельным полем; пакет героев из файла — только если ученик сам это отметил
+    const g=G('backup'); if(g){data.game=g.game; if(g.pack)data.gamePack=g.pack;}
     download('bio-kopiya-'+safe(user.name)+'-'+dstamp()+'.json', JSON.stringify(data), 'application/json;charset=utf-8');
   }
   // восстановление не затирает, а объединяет: история — по паре (время, вопрос), очередь — по более позднему
@@ -1943,6 +2121,7 @@
     });
     Object.entries(d.best||{}).forEach(([k,v])=>{if(typeof v==='number'&&(user.best[k]==null||v>user.best[k]))user.best[k]=v;});
     const ok=saveUser();
+    if(d.game) G('merge',d.game,d.gamePack);
     // незавершённые прохождения из копии — только в своё и только в пустое место
     ['main','side'].forEach(sl=>{const x=d.sessions&&d.sessions[sl];
       if(x&&x.v===1&&x.key){const home=slotOf(x.key); if(!loadSavedSession(home)){try{localStorage.setItem(sessKey(home),JSON.stringify(x));}catch(e){}}}});
@@ -1974,6 +2153,10 @@
   $('modeTopic').onclick=()=>setMenuPage('topics');
   $('chaptersBack').onclick=()=>setMenuPage('hub');
   $('topicsBack').onclick=()=>setMenuPage('hub');
+  // «Позже» прячет предложение эха до завтра
+  $('echoLater').onclick=()=>{try{localStorage.setItem(ECHO_LATER+user.name,String(Date.now()));}catch(e){} renderMenu(); focusMenu();};
+  $('gameBtn').onclick=()=>{window.scrollTo({top:0});show('game');};
+  $('gameBack').onclick=()=>{window.scrollTo({top:0});show('menu');focusMenu();};
   // прохождение сохранено — выход его не обнуляет, продолжить можно из меню;
   // спрашиваем, только если сохранить не удалось (память браузера недоступна)
   $('quitBtn').onclick=()=>{
@@ -2020,7 +2203,7 @@
   $('loginBtn').onclick=doLogin;
   $('loginInput').onkeydown=e=>{if(e.key==='Enter')doLogin();};
   // прохождение уже сохранено под именем пользователя — при возвращении его можно продолжить
-  $('switchBtn').onclick=()=>{try{localStorage.removeItem(CUR);}catch(e){}user=null;session=null;$('loginInput').value='';show('login');setTimeout(()=>$('loginInput').focus(),50);};
+  $('switchBtn').onclick=()=>{try{localStorage.removeItem(CUR);}catch(e){}user=null;session=null;G('user',null);$('loginInput').value='';show('login');setTimeout(()=>$('loginInput').focus(),50);};
   // вторая вкладка: перечитываем данные, иначе устаревшая вкладка при следующем ответе затёрла бы чужой прогресс
   window.addEventListener('storage',e=>{
     if(!user||!e.key)return;
@@ -2035,11 +2218,23 @@
       return;
     }
     if(e.key===fixKey()){ if(menu.style.display==='block') renderMenu(); return; }
+    // игровые данные и пакет героев изменены в другой вкладке
+    if(e.key.indexOf('bio_game_')===0){ G('storage',e.key); if(menu.style.display==='block') renderMenu(); return; }
     if(e.key!==udKey(user.name)&&e.key!==srsKey(user.name))return;
     loadUser(user.name,true);
     if(menu.style.display==='block') renderMenu();
     else if(dash.style.display==='block') renderDash();
   });
+
+  // ---- Игровой слой ----
+  // игра получает только чтение данных и несколько переходов по экранам; тексты своих героев — gameOwn в файле данных
+  game=(typeof window.BioGame==='function')?window.BioGame({
+    $, esc, txt, DAY, SRS_DONE, qLookup, TOPICS:TOPICS_, counted,
+    user:()=>user, session:()=>session, item:()=>curItem,
+    isDue, dueAt, dayStart, nextDayStart, fmtDay, lessonStart, echoInfo,
+    show, setMenuPage:p=>{show('menu'); setMenuPage(p);},
+    own:(typeof gameOwn!=='undefined')?gameOwn:null
+  }):null;
 
   // ---- Init ----
   let savedName=null; try{savedName=localStorage.getItem(CUR);}catch(e){}
