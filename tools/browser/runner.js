@@ -27,7 +27,8 @@
     async function answer(q, ok) {
       // шаг «Сначала вспомните»: варианты появляются после своего ответа
       if ($('recallGo')) { $('recallText').value = 'ответ робота'; $('recallGo').click(); await sleep(10); }
-      if (q.type === 'read') { $('readDone').click(); return; }
+      // у занятия со своим текстом шаг чтения в два приёма: закрыть текст, потом — к вопросам
+      if (q.type === 'read') { if ($('readHide')) $('readHide').click(); $('readDone').click(); return; }
       if (q.type === 'draw') { $('drawDone').click(); await sleep(10); markAll('#qOpts .opt', ok); $('qCheck').click(); return; }
       if (q.type === 'part2') { const ta = $('p2Text'); ta.value = 'ответ робота'; ta.dispatchEvent(new Event('input', { bubbles: true }));
         $('qCheck').click(); await sleep(10); markAll('#p2Crit .opt', ok); $('qCheck').click(); return; }

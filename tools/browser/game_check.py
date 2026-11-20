@@ -2,7 +2,8 @@
   python3 tools/browser/game_check.py [папка для снимков]
 Нужны Playwright (pip install playwright) и локальный сервер: python3 -m http.server 8753 из корня репозитория.
 Сценарий: занятие с игрой и без (учёба должна совпасть), дни 1, 4, 7, 11, 21, 32 после занятия —
-мелодия дня, заблуждение дня, эхо, эйдос, кот; пакет героев из файла; резервная копия и восстановление.
+мелодия дня, заблуждение дня, эхо, эйдос, кот; пакет героев из файла; резервная копия и восстановление;
+ученик, прошедший занятие до его обновления, и «Новое в занятии».
 Время сдвигается подменой Date: смещение — в localStorage.__shift, затем перезагрузка.
 Браузер — отдельный, со своим хранилищем: данные учеников в обычном браузере не трогаются."""
 import json
@@ -33,7 +34,8 @@ DRIVE = r"""async (spec) => {
     const isRetry = $('qBadge').textContent.startsWith('Ещё раз');
     const sp = Object.assign({ ok: true }, spec.default || {}, spec[q.id] || {}, isRetry ? (spec.retry || { ok: true, conf: null, reason: null }) : {});
     const strip0 = T($('gStrip'));
-    if (q.type === 'read') { if (sp.readText != null && $('readText')) $('readText').value = sp.readText; $('readDone').click(); await S(80); out.push({ id: q.id, strip: strip0 }); continue; }
+    if (q.type === 'read') { const txtShown = !!document.querySelector('#qOpts .rtext'); if ($('readHide')) $('readHide').click();
+      if (sp.readText != null && $('readText')) $('readText').value = sp.readText; $('readDone').click(); await S(80); out.push({ id: q.id, strip: strip0, text: txtShown }); continue; }
     if (sp.conf) { const c = document.querySelector('#qConf .cchip[data-k="' + sp.conf + '"]'); if (c) c.click(); }
     let recalled = false;
     if ($('recallGo')) { $('recallText').value = sp.recall || 'клетка получает энергию из глюкозы'; $('recallGo').click(); recalled = true; await S(30); }
@@ -42,7 +44,8 @@ DRIVE = r"""async (spec) => {
     await S(60);
     if (sp.reason && $('qWhy').className.includes('show')) { document.querySelector('#qWhy .cchip[data-k="' + sp.reason + '"]').click(); await S(30); }
     if (spec.stop === q.id) { spec.stop = null; out.push({ id: q.id, stopped: true, line: T($('qGame')) }); return out; }
-    out.push({ id: q.id, retry: isRetry, recalled, ok: $('qExplain').innerText.startsWith('✓'), explain: T($('qExplain')).slice(0, 90), line: T($('qGame')), strip: strip0 + ' ⇒ ' + T($('gStrip')) });
+    out.push({ id: q.id, retry: isRetry, recalled, ok: $('qExplain').innerText.startsWith('✓'), explain: T($('qExplain')).slice(0, 90), line: T($('qGame')), strip: strip0 + ' ⇒ ' + T($('gStrip')),
+      fig: $('qFig').className.includes('show'), whyFig: $('qWhyFig').querySelectorAll('figure').length });
     $('qNext').click(); await S(80);
   }
   return out;
@@ -96,7 +99,7 @@ def main():
             "t1-001": {"ok": True}, "t1-002": {"ok": False}, "t1-003": {"ok": True},
             "t1-004": {"readText": "фермент не расходуется в реакции"},
             "t1-006": {"ok": False, "conf": "sure", "reason": "mixed"},
-            "t1-011": {"ok": False, "conf": "unsure", "reason": "fact"},
+            "t1-019": {"ok": False, "conf": "unsure", "reason": "fact"},
             "t1-017": {"drawMiss": [2]},
             "default": {"ok": True, "recall": "белок ускоряет реакции в клетке"},
         }
@@ -153,6 +156,8 @@ def main():
         ev("()=>document.querySelector('#explainGame [data-x=partial]').click()"); page.wait_for_timeout(150)
         print("   после «частично»:", ev("()=>document.getElementById('explainGame').innerText"))
         print("   шапка итогов:", ev("()=>document.querySelector('#rGame .ghead').innerText"))
+        print("   картинки в занятии — у вопроса:", [x['id'] for x in on0 if x.get('fig')], "| под пояснением:", {x['id']: x['whyFig'] for x in on0 if x.get('whyFig')},
+              "| «Сначала вспомните»:", [x['id'] for x in on0 if x.get('recalled') and not x.get('retry')])
         ev("()=>{const b=document.querySelector('#rGame [data-fb=a]'); if(b){b.value='Опыт с картофелем'; document.querySelector('#rGame [data-fb=b]').value='Длинные вопросы'; document.querySelector('#rGame [data-fbsave]').click();}}")
         shot("g07-results-explained", "#explainGame")
         g = game_state("Игрок"); L = g['lessons']['t1']
@@ -190,6 +195,7 @@ def main():
         # ===== 5. День 7: эхо через неделю =====
         set_day(7, 2)
         shot("g12-day7-hub")
+        print("== карточка темы ==", ev("()=>{const e=document.querySelector('#topicGrid .echoline'); return e?e.textContent:'нет строки об эхе';}"))
         print("== день 7: эхо ==", ev("()=>({offer:document.getElementById('echoOffer').style.display, text:document.getElementById('echoText').innerText, go:document.getElementById('echoGo').textContent})"))
         print("   хаб:", ev("()=>document.getElementById('gHub').innerText"))
         ev("()=>document.getElementById('echoGo').click()"); page.wait_for_timeout(250); shot("g13-echo-recall")
@@ -198,7 +204,8 @@ def main():
         print("   итоги эха:", ev("()=>({v:document.getElementById('rVerdict').textContent, retry:document.getElementById('retryBtn').style.display, g:document.getElementById('rGame').innerText})"))
         shot("g14-echo-results", "#rGame")
         ev("()=>document.getElementById('homeBtn').click()"); page.wait_for_timeout(200)
-        print("   после эха — предложение:", ev("()=>document.getElementById('echoOffer').style.display"), "| эйдос w:", len(game_state("Игрок")['eidos']['w']))
+        print("   после эха — предложение:", ev("()=>document.getElementById('echoOffer').style.display"), "| эйдос w:", len(game_state("Игрок")['eidos']['w']),
+              "| карточка темы:", ev("()=>{const e=document.querySelector('#topicGrid .echoline'); return e?e.textContent:'нет строки об эхе';}"))
 
         # ===== 6. День 11: шаг 2 → 3 — точки эйдоса =====
         set_day(11, 2)
@@ -246,6 +253,38 @@ def main():
         page.set_input_files("#restoreFile", path); page.wait_for_timeout(400)
         gc = game_state("Копия")
         print("   восстановлено:", gc and gc['on'], gc and len(gc['eidos']['w']), gc and len(gc['cat']['fixed']), gc and gc['pack'])
+
+        # ===== 10. Ученик прошёл занятие до обновления: старые вопросы, старые правила игры =====
+        # В истории — 12 прежних вопросов, среди них убранный t1-011; занятие в игре без метки версии правил.
+        # Ожидается: предложение «Новое в занятии» с новыми вопросами, ноты прежнего занятия не меняются,
+        # «целиком» к нему не применяется, после новой сессии освоение — по нынешнему списку вопросов
+        ev("()=>localStorage.removeItem('__shift')"); page.reload(); page.wait_for_timeout(400)
+        ev("""()=>{const now=Date.now()-2*86400000, old=['t1-005','t1-006','t1-007','t1-008','t1-009','t1-010','t1-011','t1-012','t1-013','t1-014','t1-015','t1-016'];
+          const hist=old.map((id,i)=>({t:now+i*60000,id,ch:'t1',correct:id!=='t1-006',conf:'sure'}));
+          hist.push({t:now+13*60000,id:'t1-017',ch:'t1',correct:true},{t:now+14*60000,id:'t1-018',ch:'t1',correct:true});
+          localStorage.setItem('bio_user_Старый',JSON.stringify({best:{t1:92},history:hist}));
+          localStorage.setItem('bio_srs_Старый',JSON.stringify({'t1-006':{box:0,due:now+86400000,set:now}}));
+          const bars={pre:now,read:now,q:now,draw:now,part2:now,sum:now}, qa={}; old.forEach(id=>{qa[id]=1;});
+          localStorage.setItem('bio_game_Старый',JSON.stringify({v:1,on:true,since:now,pack:'own',days:{},eidos:{w:{},s:{}},cat:{fixed:{},myth:{}},words:[],log:[],seen:'',back:'',
+            lessons:{t1:{t:now,bars,got:{pre:1,read:1,recall:9,why:1,draw:3,part2:3,sum:3},pa:{},qa,rc:qa,wy:{'t1-006':1},caught:{},prey:{},sumRes:'yes',done:now,surprise:now}}}));}""")
+        login("Старый")
+        old0 = ev("""()=>({offer:document.getElementById('newOffer').style.display, text:document.getElementById('newText').textContent, go:document.getElementById('newGo').textContent,
+          card:[...document.querySelectorAll('#topicGrid .chapter .meta span')].map(e=>e.textContent), topic:document.getElementById('gTopic').innerText})""")
+        print("== прошёл до обновления ==", old0)
+        shot("g17-old-hub")
+        ev("()=>document.getElementById('newGo').click()"); page.wait_for_timeout(250); shot("g18-new-first")
+        print("   первый вопрос:", ev("()=>({title:document.getElementById('qTitle').textContent, count:document.getElementById('qCount').textContent, strip:document.getElementById('gStrip').innerText})"))
+        n0 = ev(DRIVE, {"default": {"ok": True}, "t1-019": {"ok": False, "conf": "unsure", "reason": "fact"}})
+        for x in n0: print("  ", x['id'], 'повтор' if x.get('retry') else '', x.get('ok'), '| картинка:', x.get('fig'), x.get('whyFig'), '|', x.get('line', '').replace('\n', ' ')[:120])
+        print("   итоги:", ev("()=>({frac:document.getElementById('rFrac').textContent, v:document.getElementById('rVerdict').textContent, retry:document.getElementById('retryBtn').style.display, g:document.getElementById('rGame').innerText})"))
+        shot("g19-new-results", "#review")
+        ev("()=>document.getElementById('homeBtn').click()"); page.wait_for_timeout(200)
+        Lo = game_state("Старый")['lessons']['t1']
+        print("   после — предложение:", ev("()=>document.getElementById('newOffer').style.display"), "| карточка:", ev("()=>[...document.querySelectorAll('#topicGrid .chapter .meta span')].map(e=>e.textContent)"),
+              "| ноты прежнего занятия:", Lo['got'], "версия правил:", Lo.get('v'), "| очередь:", learn_state("Старый")['srs'])
+        ev("()=>document.querySelector('#gHub [data-g=view]').click()"); page.wait_for_timeout(200)
+        print("   «Свет и герои», занятия:", ev("()=>{const h=[...document.querySelectorAll('#gameBody .gh3')].find(e=>e.textContent==='Занятия'); return h?h.nextElementSibling.innerText:'';}"))
+        ev("()=>document.getElementById('gameBack').click()"); page.wait_for_timeout(150)
 
         print("ошибки страницы:", errors or "нет", "| ошибки консоли:", consoles or "нет")
         ev("()=>localStorage.removeItem('__shift')")

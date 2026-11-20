@@ -16,13 +16,14 @@ window.BioGame = function (T) {
   const $ = T.$, esc = T.esc, txt = T.txt, DAY = T.DAY;
   const KEY = (n) => 'bio_game_' + n, PACK_KEY = 'bio_game_pack';
   // ноты в тактах мелодии занятия: вопросы до чтения, ответ после чтения, свои ответы до вариантов,
-  // разбор причин ошибок, рисунок, опыт и объяснение темы — всего до 23 (концепция, 3.2)
+  // разбор причин ошибок, рисунок, опыт и объяснение темы (концепция, 3.2). Это верхние пределы: за свой ответ
+  // предел в теме — по числу вопросов «Сначала вспомните» (capOf), 9 оставлено для занятий, пройденных раньше
   const CAPS = { pre: 1, read: 1, recall: 9, why: 3, draw: 3, part2: 3, sum: 3 };
-  const BARS = ['pre', 'read', 'q', 'draw', 'part2', 'sum'];
+  const BARS = ['pre', 'read', 'q', 'part2', 'draw', 'sum'];
   const BAR_NAME = { pre: 'вопросы до чтения', read: 'чтение', q: 'вопросы', draw: 'рисунок', part2: 'опыт', sum: 'объяснение темы' };
   const CHOICE = 1;          // нот на выбор в мелодии дня: в первом этапе одна (3.4)
   const DUE_MAX = 20;        // нот повторения не больше, чем вопросов в «Повторении на сегодня»
-  const WEEK_GOAL = 5, RECALL_MIN = 3, EXPLAIN_MIN = 40, MYTH_MIN = 8;
+  const WEEK_GOAL = 5, RECALL_MIN = 2, EXPLAIN_MIN = 40, MYTH_MIN = 8;
   const LIGHT_STEPS = [10, 25, 50, 100, 200, 400], CAT_STEPS = [3, 10, 25, 50, 100];
   const RES = { yes: 'да', partial: 'частично', no: 'нет' };
   const SELF = { yes: 'совпало', partial: 'частично', no: 'не совпало' };
@@ -39,6 +40,8 @@ window.BioGame = function (T) {
   const pad = (n) => String(n).padStart(2, '0');
   const dkey = (t) => { const d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
   const words = (s) => (String(s || '').match(/[A-Za-zА-Яа-яЁё0-9]+(?:-[A-Za-zА-Яа-яЁё0-9]+)*/g) || []).length;
+  // свой ответ засчитывается от двух слов: «биологический катализатор» — точный ответ. Слова через дефис считаются порознь
+  const wordsOwn = (x) => words(String(x || '').replace(/[-–—]/g, ' '));
   function plural(n, f) { n = Math.abs(n); const a = n % 100, b = n % 10; return f[a > 10 && a < 20 ? 2 : b === 1 ? 0 : b >= 2 && b <= 4 ? 1 : 2]; }
   const cnt = (n, f) => n + NB + plural(n, f);
   const lcFirst = (s) => s.charAt(0).toLowerCase() + s.slice(1);
@@ -109,14 +112,14 @@ window.BioGame = function (T) {
   // ---- состояние ученика ----
   function blank() { return { v: 1, on: false, since: 0, pack: 'own', days: {}, lessons: {}, eidos: { w: {}, s: {} }, cat: { fixed: {}, myth: {} }, words: [], log: [], seen: '', back: '' }; }
   function lessonBlank(t) {
-    return { t: t || 0, bars: { pre: 0, read: 0, q: 0, draw: 0, part2: 0, sum: 0 }, got: { pre: 0, read: 0, recall: 0, why: 0, draw: 0, part2: 0, sum: 0 },
+    return { t: t || 0, v: 2, bars: { pre: 0, read: 0, q: 0, draw: 0, part2: 0, sum: 0 }, got: { pre: 0, read: 0, recall: 0, why: 0, draw: 0, part2: 0, sum: 0 },
       pa: {}, qa: {}, rc: {}, wy: {}, caught: {}, prey: {}, sumRes: '', done: 0, surprise: 0 };
   }
   const numMap = (o) => { const r = {}; if (isObj(o)) Object.keys(o).forEach((k) => { if (typeof o[k] === 'number' && o[k] > 0) r[k] = o[k]; }); return r; };
   const flagMap = (o) => { const r = {}; if (isObj(o)) Object.keys(o).forEach((k) => { if (o[k]) r[k] = 1; }); return r; };
   function normLesson(x) {
     const b = lessonBlank(); if (!isObj(x)) return b;
-    b.t = +x.t || 0;
+    b.t = +x.t || 0; b.v = x.v === 2 ? 2 : 1;
     BARS.forEach((k) => { b.bars[k] = (isObj(x.bars) && +x.bars[k]) || 0; });
     Object.keys(CAPS).forEach((k) => { b.got[k] = Math.max(0, Math.min(CAPS[k], (isObj(x.got) && +x.got[k]) || 0)); });
     ['pa', 'qa', 'rc', 'wy', 'caught', 'prey'].forEach((k) => { b[k] = flagMap(x[k]); });
@@ -166,7 +169,9 @@ window.BioGame = function (T) {
   // ---- занятие и день ----
   const topicOf = (id) => { const m = T.qLookup[id]; return m && T.TOPICS[m.ch] ? m.ch : null; };
   const inScope = (id) => !!topicOf(id);
-  const sessMode = (s) => (!s ? '' : T.TOPICS[s.key] ? 'lesson' : s.key === '__review' ? 'review' : s.key === '__echo' ? 'echo' : 'other');
+  // «Новое в занятии» — вопросы того же занятия, добавленные позже: для игры это его продолжение
+  const lessonKey = (s) => (!s ? null : T.TOPICS[s.key] ? s.key : s.key === '__new' && T.TOPICS[s.base] ? s.base : null);
+  const sessMode = (s) => (!s ? '' : lessonKey(s) ? 'lesson' : s.key === '__review' ? 'review' : s.key === '__echo' ? 'echo' : 'other');
   const stepOf = (it) => (it.pre ? 'pre' : it.type === 'read' ? 'read' : it.type === 'draw' ? 'draw' : it.type === 'part2' ? 'part2' : 'q');
   // начало занятия — по игре или по истории тренажёра: игру могли включить уже после занятия
   function lessonT(k) { const a = st && st.lessons[k] ? st.lessons[k].t : 0, b = T.lessonStart(k) || 0; return a && b ? Math.min(a, b) : (a || b); }
@@ -175,11 +180,41 @@ window.BioGame = function (T) {
   const barsOn = (L) => BARS.filter((b) => L.bars[b]).length;
   const nPre = (k) => T.TOPICS[k].questions.filter((r) => r.pre).length;
   const nCounted = (k) => T.TOPICS[k].questions.filter(T.counted).length;
-  function give(L, cat, n, label) {
-    const g = Math.max(0, Math.min(CAPS[cat] - L.got[cat], n)); if (!g) return '';
+  const recallQs = (k) => T.TOPICS[k].questions.filter((r) => r.recall && T.counted(r));
+  // отвеченные вопросы считаются по нынешнему списку темы: номера убранных вопросов в счёт не идут
+  const qDone = (L, k) => T.TOPICS[k].questions.filter((r) => T.counted(r) && L.qa[r.id]).length;
+  const MAIN = ['pre', 'read', 'q', 'part2', 'draw'];
+  const mainDone = (L) => MAIN.every((b) => L.bars[b]);
+  // предел нот за свой ответ — по числу вопросов «Сначала вспомните» в теме, остальные пределы — из CAPS.
+  // Уже заработанное не уменьшается: у занятия, пройденного по прежним правилам, нот может быть больше
+  const capOf = (k, cat) => (cat === 'recall' ? Math.min(CAPS.recall, recallQs(k).length) : CAPS[cat]);
+  function give(k, cat, n, label) {
+    const L = lesson(k), g = Math.max(0, Math.min(capOf(k, cat) - L.got[cat], n)); if (!g) return '';
     L.got[cat] += g; if (gain) gain.notes += g;
     const h = noteHTML(g, label); pend.push({ k: 'note', html: h }); return h;
   }
+  // «Сыграна целиком» — сделано всё, что в занятии можно сделать: все такты, ответ после чтения, свои ответы
+  // до вариантов и причина у каждой ошибки. Верность ответов сюда не входит, и ошибки для этого не нужны:
+  // ноты за разбор получает и тот, кто не ошибался (см. finish). Причины ошибок берутся из истории тренажёра
+  // (поле reason первого ответа в занятии), отдельно не хранятся. Занятия, начатые до этих правил (v 1),
+  // по ним не оцениваются: исправить в них уже ничего нельзя
+  const maxNotes = (k) => Object.keys(CAPS).reduce((a, c) => a + capOf(k, c), 0);
+  function unexplained(k) {
+    const first = {}; T.user().history.forEach((h) => { if (h.ch === k && !h.mode && !h.retry && !(h.id in first)) first[h.id] = h; });
+    return Object.keys(first).filter((id) => { const m = T.qLookup[id]; return m && T.counted(m.raw) && !first[id].correct && !first[id].reason; }).length;
+  }
+  // чего в занятии не было — списком для фразы «в этот раз без …»: это не оценка, а подсказка к следующему занятию
+  function missing(k) {
+    const L = st.lessons[k], out = []; if (!L || !T.TOPICS[k] || L.v !== 2) return out;
+    if (L.bars.read && !L.got.read) out.push('ответа одной фразой после чтения');
+    const nr = recallQs(k).filter((r) => L.qa[r.id] && !L.rc[r.id]).length;
+    if (nr) out.push('своего ответа до вариантов в ' + cnt(nr, ['вопросе', 'вопросах', 'вопросах']));
+    const ne = unexplained(k);
+    if (ne) out.push('причины у ' + cnt(ne, ['ошибки', 'ошибок', 'ошибок']));
+    return out;
+  }
+  const whole = (k, L) => !!L && L.v === 2 && BARS.every((b) => L.bars[b]) && !missing(k).length;
+  const missLine = (k, L) => { const m = L && mainDone(L) ? missing(k) : []; return m.length ? 'В этот раз без ' + m.join(', без ') + '. В следующем занятии это можно сделать.' : ''; };
   function lightBar(L, b) { if (L.bars[b]) return false; L.bars[b] = now(); if (!L.done && BARS.every((x) => L.bars[x])) L.done = now(); return true; }
   // мелодия дня начинается на следующий день после занятия: в день занятия звучит мелодия занятия
   function dailyActive() { const t0 = T.dayStart(now()); return Object.keys(T.TOPICS).some((k) => { const t = lessonT(k); return t && t < t0; }); }
@@ -264,10 +299,10 @@ window.BioGame = function (T) {
     return '<span class="gbars" aria-hidden="true">' + BARS.map((b) => '<i class="' + (L.bars[b] ? 'on' : b === cur ? 'now' : '') + '"></i>').join('') + '</span>' +
       '<span class="sr-only">' + esc(term('played') + ' ' + cnt(barsOn(L), barF()) + ' из ' + BARS.length) + '</span>';
   }
-  function stripTop(s, it, L) {
-    const nC = nCounted(s.key);
+  function stripTop(k, it, L) {
+    const nC = nCounted(k);
     return '<div class="gtop"><span class="gname">' + esc(term('lesson')) + '</span>' + barsHTML(L, it ? stepOf(it) : '') +
-      '<span class="gmeta">' + esc('вопросы: ' + Math.min(size(L.qa), nC) + ' из ' + nC + ' · ' + notes(lessonNotes(L))) + '</span></div>';
+      '<span class="gmeta">' + esc('вопросы: ' + qDone(L, k) + ' из ' + nC + ' · ' + notes(lessonNotes(L))) + '</span></div>';
   }
   function dayTop(d) {
     return '<div class="gtop"><span class="gname">' + esc(sign() + ' ' + term('day')) + '</span><span class="gmeta">' +
@@ -284,19 +319,19 @@ window.BioGame = function (T) {
         if (!it || i >= s.idx || s.answers[i] == null) return;
         const m = T.qLookup[it.id]; if (!m) return; const raw = m.raw;
         if (it.pre) { L.pa[it.id] = 1; return; }
-        if (it.type === 'read') { lightBar(L, 'read'); if (words(it.readText) >= RECALL_MIN) give(L, 'read', 1, ''); return; }
-        if (it.type === 'draw' || it.type === 'part2') { if (it.score != null) { lightBar(L, it.type); give(L, it.type, 3, ''); } return; }
+        if (it.type === 'read') { lightBar(L, 'read'); if (wordsOwn(it.readText) >= RECALL_MIN) give(s.key, 'read', 1, ''); return; }
+        if (it.type === 'draw' || it.type === 'part2') { if (it.score != null) { lightBar(L, it.type); give(s.key, it.type, 3, ''); } return; }
         if (it.retry || !T.counted(raw)) return;
         L.qa[it.id] = 1;
-        if (words(it.recallText) >= RECALL_MIN && !L.rc[it.id]) { L.rc[it.id] = 1; give(L, 'recall', 1, ''); }
+        if (wordsOwn(it.recallText) >= RECALL_MIN && !L.rc[it.id]) { L.rc[it.id] = 1; give(s.key, 'recall', 1, ''); }
         if (s.answers[i] === false) {
-          if (it.reason && !L.wy[it.id]) { L.wy[it.id] = 1; give(L, 'why', 1, ''); }
+          if (it.reason && !L.wy[it.id]) { L.wy[it.id] = 1; give(s.key, 'why', 1, ''); }
           if (raw.misconception) L.caught[it.id] = 1;
           if (it.conf === 'sure') L.prey[it.id] = 1;
         }
       });
-      if (size(L.pa) >= nPre(s.key) && lightBar(L, 'pre')) give(L, 'pre', 1, '');
-      if (size(L.qa) >= nCounted(s.key)) lightBar(L, 'q');
+      if (size(L.pa) >= nPre(s.key) && lightBar(L, 'pre')) give(s.key, 'pre', 1, '');
+      if (qDone(L, s.key) >= nCounted(s.key)) lightBar(L, 'q');
     });
     gain = g0;
   }
@@ -308,11 +343,12 @@ window.BioGame = function (T) {
     const fresh = s !== stripSess;
     if (fresh) { stripSess = s; stripShown = {}; gain = { notes: 0, w: 0, s: 0, fixed: 0, prey: 0 }; }
     let h = '';
-    if (T.TOPICS[s.key]) {
-      const L = lesson(s.key), step = stepOf(it); if (fresh) backfill(s, L); save();
-      h = '<div id="gStripTop">' + stripTop(s, it, L) + '</div>';
-      // одна реплика на шаг — на первом его вопросе; дальше над карточкой только полоса
-      if (!stripShown[step] && !it.retry) { stripShown[step] = 1; h += heroHTML(hero('step_' + step)); }
+    const k = lessonKey(s);
+    if (k) {
+      const L = lesson(k), step = stepOf(it), full = !!T.TOPICS[s.key]; if (fresh && full) backfill(s, L); save();
+      h = '<div id="gStripTop">' + stripTop(k, it, L) + '</div>';
+      // одна реплика на шаг — на первом его вопросе; дальше над карточкой только полоса. В «Новом в занятии» реплик шагов нет
+      if (full && !stripShown[step] && !it.retry) { stripShown[step] = 1; h += heroHTML(hero('step_' + step)); }
     } else if (s.key === '__review' || s.key === '__echo') {
       const d = today(); if (d) h = '<div id="gStripTop">' + dayTop(d) + '</div>';
     }
@@ -320,7 +356,8 @@ window.BioGame = function (T) {
   }
   function refreshStrip() {
     const top = $('gStripTop'), s = T.session(), it = T.item(); if (!top || !s || !on()) return;
-    if (T.TOPICS[s.key]) top.innerHTML = stripTop(s, it, lesson(s.key));
+    const k = lessonKey(s);
+    if (k) top.innerHTML = stripTop(k, it, lesson(k));
     else { const d = today(); if (d) top.innerHTML = dayTop(d); }
   }
 
@@ -329,20 +366,20 @@ window.BioGame = function (T) {
   function pre(o) {
     if (!on()) return; const s = T.session(); if (!s || !T.TOPICS[s.key]) return;
     const L = lesson(s.key); L.pa[o.id] = 1; log('pre', { id: o.id, ok: o.correct ? 1 : 0 });
-    if (size(L.pa) >= nPre(s.key) && lightBar(L, 'pre')) give(L, 'pre', 1, 'попытка до чтения');
+    if (size(L.pa) >= nPre(s.key) && lightBar(L, 'pre')) give(s.key, 'pre', 1, 'попытка до чтения');
     after(o.id, o.correct); save();
   }
   function read(o) {
     if (!on()) return; const s = T.session(); if (!s || !T.TOPICS[s.key]) return;
-    const L = lesson(s.key), w = words(o.text); log('rd', { id: o.id, w });
-    lightBar(L, 'read'); if (w >= RECALL_MIN) give(L, 'read', 1, 'ответ по памяти после чтения');
+    const L = lesson(s.key), w = wordsOwn(o.text); log('rd', { id: o.id, w });
+    lightBar(L, 'read'); if (w >= RECALL_MIN) give(s.key, 'read', 1, 'ответ по памяти после чтения');
     save();
   }
   function recall(o) {
-    if (!on() || !inScope(o.id)) return; const s = T.session(), m = sessMode(s), w = o.skip ? 0 : words(o.text);
+    if (!on() || !inScope(o.id)) return; const s = T.session(), m = sessMode(s), w = o.skip ? 0 : wordsOwn(o.text);
     log('rc', { id: o.id, w, s: o.skip ? 1 : 0, m });
     if (w >= RECALL_MIN) {
-      if (m === 'lesson') { const L = lesson(s.key); if (!L.rc[o.id]) { L.rc[o.id] = 1; give(L, 'recall', 1, 'свой ответ до вариантов'); } }
+      if (m === 'lesson') { const k = lessonKey(s), L = lesson(k); if (!L.rc[o.id]) { L.rc[o.id] = 1; give(k, 'recall', 1, 'свой ответ до вариантов'); } }
       else if (m === 'review' || m === 'echo') choiceNote('recall', 'свой ответ до вариантов');
     }
     save();
@@ -351,7 +388,7 @@ window.BioGame = function (T) {
     if (!on() || !o.reason || !inScope(o.id)) return; const s = T.session(), m = sessMode(s);
     log('wy', { id: o.id, r: o.reason, m });
     const p0 = pend.length;
-    if (m === 'lesson') { const L = lesson(s.key); if (!L.wy[o.id]) { L.wy[o.id] = 1; give(L, 'why', 1, 'разбор ошибки'); } }
+    if (m === 'lesson') { const k = lessonKey(s), L = lesson(k); if (!L.wy[o.id]) { L.wy[o.id] = 1; give(k, 'why', 1, 'разбор ошибки'); } }
     else if (m === 'review' || m === 'echo') choiceNote('why', 'разбор ошибки');
     save(); if (pend.length > p0) { renderLine('only'); refreshStrip(); }
   }
@@ -364,8 +401,8 @@ window.BioGame = function (T) {
     if (o.again) { save(); return; }
     const raw = T.qLookup[id].raw;
     if (m === 'lesson') {
-      const L = lesson(s.key);
-      if (T.counted(raw)) { L.qa[id] = 1; if (size(L.qa) >= nCounted(s.key)) lightBar(L, 'q'); }
+      const k = lessonKey(s), L = lesson(k);
+      if (T.counted(raw)) { L.qa[id] = 1; if (qDone(L, k) >= nCounted(k)) lightBar(L, 'q'); }
       if (!o.correct && raw.misconception) L.caught[id] = 1;
       if (!o.correct && o.conf === 'sure') L.prey[id] = 1;
     }
@@ -388,7 +425,7 @@ window.BioGame = function (T) {
   function task(o) {
     if (!on() || !inScope(o.id)) return; const s = T.session(), m = sessMode(s);
     log(o.type === 'draw' ? 'dr' : 'p2', { id: o.id, sc: o.score, n: o.n, m });
-    if (m === 'lesson') { const L = lesson(s.key); lightBar(L, o.type); give(L, o.type, 3, o.type === 'draw' ? 'рисунок сверен со схемой' : 'объяснение и честная самопроверка'); }
+    if (m === 'lesson') { const k = lessonKey(s), L = lesson(k); lightBar(L, o.type); give(k, o.type, 3, o.type === 'draw' ? 'рисунок сверен со схемой' : 'объяснение и честная самопроверка'); }
     save();
   }
   function reveal() { if (!on()) return; renderLine('add'); refreshStrip(); }
@@ -397,19 +434,22 @@ window.BioGame = function (T) {
   const capture = (fn) => { const p0 = pend.length; fn(); return pend.splice(p0).map((x) => x.html).join(''); };
   function surprise(L) { if (!L.done || L.surprise) return ''; L.surprise = now(); return heroHTML(hero('surprise')); }
   function dueTomorrow() { const end = T.nextDayStart(T.nextDayStart(now())); return srsCount((e) => T.dueAt(e) < end); }
-  function lessonHead(L) {
-    const n = barsOn(L), all = n === BARS.length;
-    const miss = BARS.filter((b) => !L.bars[b]);
+  // шапка итогов: такты и ноты; у занятия по новым правилам — сколько нот из возможных и «целиком», когда сделано всё
+  function lessonHead(k, L) {
+    const n = barsOn(L), all = n === BARS.length, nt = notes(lessonNotes(L)) + (L.v === 2 ? ' из ' + maxNotes(k) : '');
     let h = '<div class="gtop"><span class="gname">' + esc(term('lesson')) + '</span>' + barsHTML(L, '') + '</div>';
-    h += '<p class="gn">' + esc(sign() + ' ' + (all ? term('lessonDone') + ': ' + cnt(n, barF()) + ', ' + notes(lessonNotes(L))
-      : n + ' из ' + cnt(BARS.length, barF()) + ' · ' + notes(lessonNotes(L)))) + '</p>';
-    if (!all) h += '<p class="gmeta">' + esc(miss.length === 1 && miss[0] === 'sum'
-      ? 'Последний ' + barF()[0] + ' — объяснение темы — ' + (term('later') || 'можно доиграть в любой день, когда взрослый рядом') + '. Он ниже и в «Свете и героях».'
-      : 'Ещё не отмечены: ' + miss.map((b) => BAR_NAME[b]).join(', ') + '.') + '</p>';
+    h += '<p class="gn">' + esc(sign() + ' ' + (all ? term('lessonDone') + (whole(k, L) ? ' целиком' : '') + ': ' + cnt(n, barF()) + ', ' + nt
+      : n + ' из ' + cnt(BARS.length, barF()) + ' · ' + nt)) + '</p>';
+    const ml = missLine(k, L); if (ml) h += '<p class="gmeta">' + esc(ml) + '</p>';
+    if (!L.bars.sum) h += '<p class="gmeta">' + esc('Последний ' + barF()[0] + ' — объяснение темы — ' + (term('later') || 'можно доиграть в любой день, когда взрослый рядом') + '. Он ниже и в «Свете и героях».') + '</p>';
     return h;
   }
+  // ноты за разбор ошибок достаются и тому, кто не ошибался: полная мелодия не требует ошибок.
+  // Добор — когда все шаги занятия сделаны и ни одной ошибки без причины нет
+  const topUp = (k, L) => (L.v === 2 && mainDone(L) && !unexplained(k) ? capture(() => give(k, 'why', CAPS.why, 'ни одной ошибки без разбора')) : '');
   function lessonSummary(k, L) {
-    let h = '<div class="ghead">' + lessonHead(L) + '</div>';
+    const top = topUp(k, L);
+    let h = '<div class="ghead">' + lessonHead(k, L) + '</div>' + top;
     h += heroHTML(hero('lesson_end')) + surprise(L);
     const c = size(L.caught), p = size(L.prey);
     h += c || p
@@ -460,8 +500,10 @@ window.BioGame = function (T) {
     let h = '';
     if (T.TOPICS[s.key]) {
       const L = lesson(s.key); h = lessonSummary(s.key, L);
-      if (ex) explainBlock(ex, s.key, () => { const hd = el.querySelector('.ghead'); if (hd) hd.innerHTML = lessonHead(lesson(s.key)); });
+      if (ex) explainBlock(ex, s.key, () => { const hd = el.querySelector('.ghead'); if (hd) hd.innerHTML = lessonHead(s.key, lesson(s.key)); });
       if (ai) ai.innerHTML = heroHTML(hero('ai_first'));
+    } else if (lessonKey(s)) {
+      const k = lessonKey(s), L = lesson(k), top = topUp(k, L); h = '<div class="ghead">' + lessonHead(k, L) + '</div>' + top;
     } else if (s.key === '__review' || s.key === '__echo') {
       const d = today(); if (d) h = daySummary(d, s);
     }
@@ -474,7 +516,7 @@ window.BioGame = function (T) {
     const L = lesson(k);
     if (o.res) { L.sumRes = o.res; log('ex', { topic: k, res: o.res }); }
     else { if (!L.sumRes) L.sumRes = 'text'; pushWords({ kind: 'explain', topic: k, text: o.text.slice(0, 4000) }); log('ex', { topic: k, w: words(o.text) }); }
-    if (lightBar(L, 'sum')) give(L, 'sum', 3, 'тема объяснена своими словами');
+    if (lightBar(L, 'sum')) give(k, 'sum', 3, 'тема объяснена своими словами');
     const h = hero('explain_done'); if (h) pend.push({ k: 'say', html: heroHTML(h) });
     const sp = surprise(L); if (sp) pend.push({ k: 'say', html: sp });
     save();
@@ -533,8 +575,9 @@ window.BioGame = function (T) {
   const mythAvail = () => !!today() && myths().length > 0 && !mythDone();
   function mythView(b) {
     const m = mythToday(); if (!m) { panel = 'main'; view(); return; }
-    const raw = T.qLookup[m.q].raw, refute = () => '<div class="explain show"><b>Как на самом деле.</b> ' + txt(raw.why) +
-      (m.src ? '<br><span class="gmeta">Где прочитать: ' + txt(m.src) + '</span>' : '') + '</div>';
+    // опровержение — пояснение связанного вопроса и его схема-пояснение, если она есть: важно понять, а не найти в книге
+    const raw = T.qLookup[m.q].raw, refute = () => '<div class="explain show"><b>Как на самом деле.</b> ' + txt(raw.why) + '</div>' +
+      (raw.whyFig && T.fig ? '<div class="whyfig">' + T.fig(raw.whyFig) + '</div>' : '');
     let h = '<button type="button" class="backlink" data-g="main">← Свет и герои</button><h2 class="vh" tabindex="-1">Заблуждение дня</h2>' +
       heroHTML(hero('myth_intro')) + '<blockquote class="gmyth">' + txt(m.text) + '</blockquote>';
     if (mythDone()) {
@@ -584,11 +627,11 @@ window.BioGame = function (T) {
     });
   }
   function topicBlock(k) {
-    const L = st.lessons[k], t = lessonT(k), ei = T.echoInfo(k);
-    let h = '<div class="gtop"><span class="gname">' + esc(term('lesson')) + '</span>' + (L ? barsHTML(L, '') + '<span class="gmeta">' + esc(notes(lessonNotes(L))) + '</span>' : '') + '</div>';
+    // когда будет эхо и что в нём удержалось, показывает сама карточка темы: эхо — часть тренажёра
+    const L = st.lessons[k], t = lessonT(k);
+    let h = '<div class="gtop"><span class="gname">' + esc(term('lesson')) + '</span>' + (L ? barsHTML(L, '') + '<span class="gmeta">' + esc(notes(lessonNotes(L)) + (whole(k, L) ? ' · целиком' : '')) + '</span>' : '') + '</div>';
     if (!t) h += heroHTML(hero('topic_start'));
-    else if (L && !L.bars.sum && L.bars.part2) h += '<p class="gmeta">' + esc('Последний ' + barF()[0] + ' — объяснение темы — в «Свете и героях».') + '</p>';
-    else if (ei && !ei.which && ei.nextAt) h += '<p class="gmeta">' + esc('Эхо занятия — ' + T.fmtDay(ei.nextAt) + '.') + '</p>';
+    else if (L && !L.bars.sum && mainDone(L)) h += '<p class="gmeta">' + esc('Последний ' + barF()[0] + ' — объяснение темы — в «Свете и героях».') + '</p>';
     return '<div class="gtopic">' + h + '</div>';
   }
   function liveDue() { return srsCount((e) => T.isDue(e)); }
@@ -666,13 +709,14 @@ window.BioGame = function (T) {
     let h = '<h3 class="gh3">Занятия</h3>';
     Object.keys(T.TOPICS).forEach((k) => {
       const L = st.lessons[k], t = lessonT(k), ei = T.echoInfo(k), tt = T.TOPICS[k];
-      let line = !t ? 'ещё не начато' : !L ? 'занятие прошло, когда игра была выключена' : barsOn(L) === BARS.length ? lcFirst(term('lessonDone')) + ' · ' + notes(lessonNotes(L)) : barsOn(L) + ' из ' + cnt(BARS.length, barF()) + ' · ' + notes(lessonNotes(L));
+      const ml = L ? missLine(k, L) : '', nt = L ? notes(lessonNotes(L)) + (L.v === 2 ? ' из ' + maxNotes(k) : '') : '';
+      let line = !t ? 'ещё не начато' : !L ? 'занятие прошло, когда игра была выключена' : barsOn(L) === BARS.length ? lcFirst(term('lessonDone')) + (whole(k, L) ? ' целиком' : '') + ' · ' + nt : barsOn(L) + ' из ' + cnt(BARS.length, barF()) + ' · ' + nt;
       if (ei) {
         const e7 = ei.done.d7, e21 = ei.done.d21;
         line += ei.which ? ' · эхо можно сыграть сейчас' : !e7 && !e21 && ei.nextAt ? ' · эхо — ' + T.fmtDay(ei.nextAt) : e7 && !e21 && ei.nextAt ? ' · эхо через неделю сыграно, второе — ' + T.fmtDay(ei.nextAt) : e21 ? ' · эхо сыграно' : '';
       }
       h += '<div class="gcard"><div class="gic" aria-hidden="true">' + esc(tt.icon || '⚡') + '</div><div class="gcb"><p><b>' + esc(tt.title) + '</b> — ' + esc(line) + '</p>' +
-        (L ? '<div class="gtop">' + barsHTML(L, '') + '</div>' : '') + (L && !L.bars.sum ? '<div class="gexpwrap" data-exp="' + esc(k) + '"></div>' : '') + '</div></div>';
+        (L ? '<div class="gtop">' + barsHTML(L, '') + '</div>' : '') + (ml ? '<p class="gmeta">' + esc(ml) + '</p>' : '') + (L && !L.bars.sum ? '<div class="gexpwrap" data-exp="' + esc(k) + '"></div>' : '') + '</div></div>';
     });
     return h;
   }
@@ -705,7 +749,7 @@ window.BioGame = function (T) {
       rows.push(['Возврат после занятия', 'день 1 — ' + yes(d1) + (d4 == null ? '' : ', день 4 — ' + yes(d4))]);
     });
     const sig = [];
-    const short = rc.filter((x) => !x.s && x.w > 0 && x.w < RECALL_MIN); if (rc.length >= 5 && short.length / rc.length >= 0.3) sig.push('в «Сначала вспомните» часто одно-два слова');
+    const short = rc.filter((x) => !x.s && x.w > 0 && x.w < RECALL_MIN); if (rc.length >= 5 && short.length / rc.length >= 0.3) sig.push('в «Сначала вспомните» часто одно слово');
     const wy = st.log.filter((x) => x.k === 'wy'); if (wy.length >= 4 && new Set(wy.map((x) => x.r)).size === 1) sig.push('в «почему ошибка» всегда одна и та же кнопка');
     const sure = st.log.filter((x) => x.k === 'r' && x.sure && !x.re); if (sure.length >= 5 && sure.filter((x) => x.ok).length / sure.length < 0.7) sig.push('«Знаю» верно меньше чем в 70 % случаев');
     rows.push(['Сигналы фарма', sig.length ? sig.join('; ') : 'не видно']);

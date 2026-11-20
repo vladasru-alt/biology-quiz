@@ -15,7 +15,7 @@ const ABBR_OK = /^(ДНК|РНК)$/; // общеизвестные сокращ�
 const fields = (q) => [['q', q.q], ...(q.options || []).map((o) => ['opt', o]), ...(q.reasons || []).map((o) => ['rsn', o]), ['reasonQ', q.reasonQ || ''],
   ...(q.left || []).map((o) => ['left', o]), ...(q.right || []).map((o) => ['right', o]), ...(q.items || []).map((o) => ['item', o]), ['why', q.why || ''],
   // шаги занятия по теме: что прочитать, части рисунка, элементы ответа и эталон
-  ...(q.points || []).map((o) => ['point', o]), ...(q.look || []).map((o) => ['look', o]), ...(q.elements || []).map((o) => ['elem', o.text]),
+  ...(q.points || []).map((o) => ['point', o]), ...(q.text || []).flatMap((o) => [['textH', o.h || ''], ['text', o.p]]), ...(q.look || []).map((o) => ['look', o]), ...(q.elements || []).map((o) => ['elem', o.text]),
   ...(q.criteria || []).map((o) => ['crit', o]), ['model', q.model || ''], ['note', q.note || '']];
 const sents = (t) => t.split(/(?<=[.!?])\s+(?=[А-ЯЁA-Z«])/).filter(Boolean);
 const words = (t) => (t.match(/[А-Яа-яЁёA-Za-z0-9₂₃⁺⁻-]+/g) || []);

@@ -51,15 +51,28 @@ const stripService = (q) => { const o = {}; for (const k of Object.keys(q)) if (
 // структура вопроса по типу и метаданные: список ошибок (пустой — всё в порядке)
 function structure(q) {
   const e = []; const isIdx = (i, n) => Number.isInteger(i) && i >= 0 && i < n;
-  // шаг «чтение» в занятии по теме: без метаданных и пояснения
+  // шаг «чтение» в занятии по теме: без метаданных и пояснения. Нужен свой текст занятия (text — абзацы {h, p})
+  // или список того, что прочитать (points)
   if (q.type === 'read') {
     if (typeof q.q !== 'string' || !q.q.trim()) e.push('нет условия');
-    if (!Array.isArray(q.points) || !q.points.length) e.push('read: points — что прочитать');
+    const okText = Array.isArray(q.text) && q.text.length > 0 && q.text.every((x) => x && typeof x.p === 'string' && x.p.trim() && (x.h === undefined || typeof x.h === 'string'));
+    if (q.text !== undefined && !okText) e.push('read: text — непустой список абзацев {h, p}');
+    if (!okText && (!Array.isArray(q.points) || !q.points.length)) e.push('read: нужен text — свой текст занятия — или points — что прочитать');
     if (q.look !== undefined && !Array.isArray(q.look)) e.push('read: look — список вопросов');
     return e;
   }
   if ('pre' in q && q.pre !== true) e.push('pre не true');
   if ('recall' in q && q.recall !== true) e.push('recall не true');
+  // шаг «Сначала вспомните» — только у зачётных вопросов: у вопроса до чтения и у заданий он не нужен
+  if (q.recall && (q.pre || q.type === 'draw' || q.type === 'part2')) e.push('recall у вопроса до чтения или у задания');
+  // рисунок к вопросу, схема для сверки и схемы-пояснения — ключи схем: строка, у whyFig — строка или непустой список строк
+  const isKey = (x) => typeof x === 'string' && !!x.trim();
+  ['fig', 'ref'].forEach((f) => { if (f in q && !isKey(q[f])) e.push(f + ' — не ключ схемы'); });
+  if ('whyFig' in q && !(isKey(q.whyFig) || (Array.isArray(q.whyFig) && q.whyFig.length && q.whyFig.every(isKey)))) e.push('whyFig — ключ схемы или непустой список ключей');
+  // опечатка в имени поля молча выключила бы картинку
+  ['whyfig', 'whyFigs', 'figWhy', 'figs'].forEach((f) => { if (f in q) e.push('поле ' + f + ': должно быть whyFig или fig'); });
+  // fixed — варианты не перемешиваются: только у вопроса с одним ответом, и верный тогда не обязан стоять первым
+  if ('fixed' in q && (q.fixed !== true || q.type !== 'single')) e.push('fixed — только true и только у single');
   if (!SKILLS.includes(q.skill)) e.push('skill «' + q.skill + '»');
   if (!LEVELS.includes(q.level)) e.push('level «' + q.level + '»');
   if (![1, 2, 3].includes(q.difficulty)) e.push('difficulty ' + q.difficulty);
