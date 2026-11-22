@@ -1,4 +1,4 @@
-"""Проверка игрового слоя (game.js) в безголовом Chrome — PIPELINE.md, раздел 11.
+"""Проверка игрового слоя (game.js) в безголовом Chrome — PIPELINE.md, раздел 8.
   python3 tools/browser/game_check.py [папка для снимков]
 Нужны Playwright (pip install playwright) и локальный сервер: python3 -m http.server 8753 из корня репозитория.
 Сценарий: занятие с игрой и без (учёба должна совпасть), дни 1, 4, 7, 11, 21, 32 после занятия —
