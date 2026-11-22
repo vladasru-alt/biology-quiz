@@ -25,7 +25,7 @@ SHIFT = """(() => { let off = 0; try { off = +(localStorage.getItem('__shift') |
   D.prototype = RD.prototype; D.now = () => RD.now() + off; D.parse = RD.parse; D.UTC = RD.UTC; Object.setPrototypeOf(D, RD); window.Date = D; })();"""
 DRIVE = r"""async (spec) => {
   const S = (ms) => new Promise((r) => setTimeout(r, ms)), $ = (id) => document.getElementById(id), T = (e) => e.innerText.replace(/ /g, ' ');
-  const m = {}; Object.values(Object.assign({}, QUIZ, TOPICS)).forEach((c) => c.questions.forEach((q) => { m[q.q] = q; }));
+  const m = {}; Object.values(Object.assign({}, QUIZ, TOPICS)).forEach((c) => c.questions.concat(c.twins || []).forEach((q) => { m[q.q] = q; }));
   const out = [];
   for (let n = 0; n < 80; n++) {
     if ($('quiz').style.display === 'none') break;
@@ -234,6 +234,14 @@ def main():
         start_review(); r32 = ev(DRIVE, {"default": {"ok": True, "recall": "ответ продержался три недели"}})
         print("== день 32 ==", [(x['id'], x.get('line', '')) for x in r32])
         ev("()=>document.getElementById('homeBtn').click()"); page.wait_for_timeout(200)
+        # учебные цели: близнецы в повторе и в эхе, состояния целей на карточке и в кабинете
+        hist = learn_state("Игрок")['hist']
+        print("== цели == близнецы в истории:", sorted({h[0] for h in hist if h[0] >= 't1-101'}), "| вопросы до чтения в истории:", sorted({h[0] for h in hist if h[3] == 'pre'}))
+        print("   карточка:", ev("()=>{const e=document.querySelector('#topicGrid .goalline'); return e?e.textContent:'нет строки о целях';}"))
+        ev("()=>document.getElementById('dashBtn').click()"); page.wait_for_timeout(250)
+        print("   кабинет:", ev("()=>{const d=document.querySelector('#goalStats details'); if(!d) return 'нет блока'; d.open=true; return d.innerText;}")[:1600])
+        shot("g16b-goals", "#goalStats")
+        ev("()=>document.getElementById('dashHomeBtn').click()"); page.wait_for_timeout(200)
         g = game_state("Игрок")
         print("   эйдос w/s:", len(g['eidos']['w']), len(g['eidos']['s']), "| кот:", len(g['cat']['fixed']), "| дней сыграно:", sum(1 for d in g['days'].values() if d['done']), "| журнал:", len(g['log']))
         ev("()=>document.getElementById('gameBtn').click() || document.querySelector('#gHub [data-g=view]').click()"); page.wait_for_timeout(200)

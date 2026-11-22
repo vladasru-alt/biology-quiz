@@ -73,6 +73,16 @@ function structure(q) {
   ['whyfig', 'whyFigs', 'figWhy', 'figs'].forEach((f) => { if (f in q) e.push('поле ' + f + ': должно быть whyFig или fig'); });
   // fixed — варианты не перемешиваются: только у вопроса с одним ответом, и верный тогда не обязан стоять первым
   if ('fixed' in q && (q.fixed !== true || q.type !== 'single')) e.push('fixed — только true и только у single');
+  // учебная цель шага занятия и адресные пояснения к неверным вариантам и обоснованиям: ключ — номер в исходном массиве
+  if ('goal' in q && !isKey(q.goal)) e.push('goal — не ключ цели');
+  [['whyWrong', q.options, q.correct], ['whyWrongReason', q.reasons, q.reasonCorrect]].forEach(([f, arr, ok]) => {
+    if (!(f in q)) return; const m = q[f];
+    if (!m || typeof m !== 'object' || Array.isArray(m) || !Array.isArray(arr)) { e.push(f + ' — объект {номер варианта: текст} у вопроса с вариантами'); return; }
+    Object.keys(m).forEach((k) => { const i = +k;
+      if (!isIdx(i, arr.length) || String(i) !== k) e.push(f + ': нет варианта ' + k);
+      else if (i === ok) e.push(f + ': пояснение к верному варианту ' + k);
+      if (typeof m[k] !== 'string' || !m[k].trim() || m[k].length > 200) e.push(f + ' ' + k + ': текст до 200 знаков'); });
+  });
   if (!SKILLS.includes(q.skill)) e.push('skill «' + q.skill + '»');
   if (!LEVELS.includes(q.level)) e.push('level «' + q.level + '»');
   if (![1, 2, 3].includes(q.difficulty)) e.push('difficulty ' + q.difficulty);

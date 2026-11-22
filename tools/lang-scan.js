@@ -23,7 +23,7 @@ const VN = new RegExp('[а-яё]+(?:ние|ния|нию|нием|нии|ция|
 const st = { q: 0, semi: 0, paren: 0, kanc: 0, abbr3: 0, longSent: 0, uch: 0, verbalNounQ: 0, longWhy: 0, nbspNum: 0 }, ex = {};
 const add = (k, id, t) => { st[k]++; (ex[k] = ex[k] || []).length < 6 && ex[k].push(id + ': ' + t.slice(0, 140)); };
 const kancCount = {};
-for (const ch in QUIZ) for (const q of QUIZ[ch].questions) { st.q++;
+for (const ch in QUIZ) for (const q of QUIZ[ch].questions.concat(QUIZ[ch].twins || [])) { st.q++;
   for (const [f, t] of fields(q)) { if (!t) continue;
     if (t.includes(';')) add('semi', q.id + ' ' + f, t);
     const par = (t.match(/\([^)]*[а-яё]{3,}[^)]*\)/g) || []); if (par.length) add('paren', q.id + ' ' + f, par.join(' '));

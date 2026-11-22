@@ -243,6 +243,11 @@
   .vsub{color:var(--muted);font-size:14px;margin:0 0 4px}
   .chapter .stage{font-size:12px;color:var(--accent);margin:2px 0 6px}
   .chapter .echoline{font-size:12px;color:var(--muted);margin-top:8px}
+  .chapter .goalline{font-size:12px;color:var(--muted);margin-top:4px}
+  .wnote{display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+  .goals{margin:10px 0 0} .goals summary{cursor:pointer;font-weight:600}
+  .glist{list-style:none;margin:10px 0;padding:0} .glist li{border-bottom:1px solid var(--line);padding:8px 0;font-size:14px;line-height:1.45}
+  .glist .gnums{display:block;color:var(--muted);font-size:13px;margin-top:2px}
 
   /* Тренажёр по теме: шаг «Сначала вспомните», схемы, задания */
   .recall{display:flex;flex-direction:column;gap:8px;margin:2px 0 6px}
@@ -480,6 +485,7 @@
     <p class="sub" id="reviewNote" style="margin:8px 0 0"></p>
     <h3>Успеваемость по главам</h3>
     <div id="chapterProgress"></div>
+    <div id="goalStats"></div>
     <h3>Вопросы в очереди повторения</h3>
     <div id="mistakeList"></div>
     <h3>Экспорт для повторения</h3>
@@ -540,6 +546,9 @@
   const counted=raw=>!raw.pre&&!isTask(raw);
   const secTitle=k=>SEC[k]?SEC[k].title:k;
   Object.keys(SEC).forEach(ck=>SEC[ck].questions.forEach(raw=>{qLookup[raw.id]={ch:ck, raw}; idByText[raw.q]=raw.id;}));
+  // вопросы-близнецы занятия: та же учебная цель в новой ситуации. В самом занятии их нет — они приходят в эхе
+  // и в повторе после ошибки; в «освоено N из M» не входят
+  Object.keys(TOPICS_).forEach(ck=>(TOPICS_[ck].twins||[]).forEach(raw=>{qLookup[raw.id]={ch:ck, raw, twin:true}; idByText[raw.q]=raw.id;}));
   function udKey(n){return 'bio_user_'+n;}
   // localStorage может быть недоступен (приватный режим, встроенный браузер) — тогда работаем в памяти
   function srsKey(n){return 'bio_srs_'+n;}
@@ -581,7 +590,7 @@
     }
   }
   // последний ответ по каждому вопросу; повтор в той же сессии не в счёт — он идёт сразу после разбора
-  function latestByQ(){const m={};user.history.forEach(h=>{if(h.id&&!h.retry&&(!m[h.id]||h.t>=m[h.id].t))m[h.id]=h;});return m;}
+  function latestByQ(){const m={};user.history.forEach(h=>{if(h.id&&!h.retry&&h.mode!=='pre'&&(!m[h.id]||h.t>=m[h.id].t))m[h.id]=h;});return m;}
 
   // ---- Интервальное повторение ----
   // Ошибка ставит вопрос в очередь на завтра; каждый верный ответ в срок отодвигает следующее повторение
@@ -617,10 +626,27 @@
   // вопрос освоен, если последний ответ верен, не угадан и вопрос не ждёт первого повторения после ошибки
   function masteredBy(h){const e=user.srs[h.id];return h.correct&&h.conf!=='guess'&&!(e&&e.box===0);}
   function currentMistakes(){return srsPending().map(id=>({id,ch:qLookup[id].ch}));}
+  // что выбрано и сколько думали: номер варианта и обоснования в исходном порядке банка (варианты на экране
+  // перемешаны) и секунды от показа вопроса до ответа. По ним видно, какое заблуждение сработало
+  function answerFacts(it){
+    const raw=(qLookup[it.id]||{}).raw, f={};
+    if(raw&&(it.type==='single'||it.type==='twotier')&&typeof it.pick==='string'){const i=raw.options.indexOf(it.pick); if(i>=0)f.pick=i;}
+    if(raw&&it.type==='twotier'&&it.pickReason){const j=raw.reasons.indexOf(it.pickReason); if(j>=0)f.pr=j;}
+    if(raw&&it.type==='truefalse'&&typeof it.pick==='string') f.pick=it.pick==='Верно'?1:0;
+    if(it.shownAt){const sec=Math.round((Date.now()-it.shownAt)/1000); if(sec>=0&&sec<36000)f.s=sec;}
+    return f;
+  }
+  // ответ до чтения: в историю — для измерения «до → после», но не в зачёт, освоение и повторение
+  function recordPre(correct){
+    if(!user)return;
+    const meta=qLookup[curItem.id];
+    user.history.push(Object.assign({t:Date.now(), id:curItem.id, ch:meta?meta.ch:session.key, correct:!!correct, mode:'pre'}, answerFacts(curItem)));
+    trimHistory(); saveUser();
+  }
   function recordAnswer(correct){
     if(!user)return;
     const meta=qLookup[curItem.id];
-    const rec={t:Date.now(), id:curItem.id, ch:meta?meta.ch:session.key, correct:!!correct};
+    const rec=Object.assign({t:Date.now(), id:curItem.id, ch:meta?meta.ch:session.key, correct:!!correct}, answerFacts(curItem));
     if(!meta) rec.q=curItem.q;
     // работа над ошибками идёт сразу после разбора — ответ ещё в рабочей памяти: как и повтор в сессии,
     // он не входит ни в точность, ни в освоение и не продвигает вопрос в очереди (ошибка же ставит его на завтра)
@@ -942,7 +968,7 @@
     if(ei){
       const tt=TOPICS_[ei.key].title;
       $('echoText').innerHTML=G('echoText',ei)||txt((ei.which==='d21'?'Три недели после занятия «':'Неделя после занятия «')+tt+
-        '». '+(ei.ids.length>1?'Несколько вопросов':'Вопрос')+' по памяти, пояснения — в конце.');
+        '». '+(ei.ids.length>1?'Несколько вопросов':'Вопрос')+' по памяти, часть — в новых ситуациях. Пояснения — в конце.');
       $('echoGo').textContent='▶ Эхо занятия — '+ei.ids.length+' вопр.';
       $('echoGo').onclick=()=>startEcho(ei.key);
     }
@@ -974,8 +1000,8 @@
       const open=()=>isTopic?startTopic(key):startQuiz(key);
       // карточка — не <button> (внутри заголовок и блоки), поэтому роль и клавиши задаём сами
       el.tabIndex=0; el.setAttribute('role','button');
-      const eLine=isTopic?echoLine(key):'';
-      el.setAttribute('aria-label',sec.title+', '+n+' вопросов'+(nTasks?' и '+nTasks+' задания':'')+', '+(attempted?'освоено '+mastered+' из '+n:'не начата')+(eLine?'. '+eLine:''));
+      const eLine=isTopic?echoLine(key):'', gLine=isTopic?goalLine(key):'';
+      el.setAttribute('aria-label',sec.title+', '+n+' вопросов'+(nTasks?' и '+nTasks+' задания':'')+', '+(attempted?'освоено '+mastered+' из '+n:'не начата')+(eLine?'. '+eLine:'')+(gLine?'. '+gLine:''));
       el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};
       el.innerHTML=
         '<div class="ic">'+sec.icon+'</div>'+
@@ -986,7 +1012,7 @@
         '<div class="meta"><span>'+n+' вопросов'+(nTasks?' · '+nTasks+' задания':'')+'</span>'+
         (attempted?'<span class="best'+(mastered/n>=0.7?'':' part')+'" title="Последний ответ верен и не угадан, а после ошибки вопрос хотя бы раз верно повторён в срок">Освоено '+mastered+' из '+n+'</span>'
           :'<span class="best none">Не начата</span>')+
-        '</div>'+(eLine?'<div class="echoline">'+esc(eLine)+'</div>':'');
+        '</div>'+(eLine?'<div class="echoline">'+esc(eLine)+'</div>':'')+(gLine?'<div class="goalline">'+esc(gLine)+'</div>':'');
       el.onclick=open;
       return el;
     };
@@ -1030,8 +1056,17 @@
     const k=i>=0?i:(s.pool.length?-1:0);
     if(k<0)return null;
     const l=s.later.splice(k,1)[0];
-    const it=prep(l.raw); it.retry=true; it.first=l.first;
+    // в занятии повтор — вопрос-близнец той же цели в новой ситуации: верный ответ на тот же вопрос сразу
+    // после пояснения во многом узнавание. Близнец берётся тот, которого ученик ещё не видел
+    const tw=(TOPICS_[s.key]||s.key==='__new')?twinFor(l.raw):null;
+    const it=prep(tw||l.raw); it.retry=true; it.first=l.first; if(tw) it.twinOf=l.id;
     return it;
+  }
+  function twinFor(raw){
+    const m=qLookup[raw.id]; if(!raw.goal||!m||!TOPICS_[m.ch])return null;
+    const seen=new Set(user?user.history.map(h=>h.id):[]);
+    const inSess=new Set(session?session.questions.filter(Boolean).map(q=>q.id):[]);
+    return (TOPICS_[m.ch].twins||[]).find(r=>r.goal===raw.goal&&!seen.has(r.id)&&!inSess.has(r.id))||null;
   }
   // в процент идут первые попытки вопросов; повтор в сессии, вопросы до чтения и шаги занятия — нет
   const isFirstTry=(s,i)=>{const it=s.questions[i]; return !(it&&(it.retry||it.noScore));};
@@ -1152,18 +1187,26 @@
     // вопрос, который встречался в любом режиме за последние три дня, в эхо не идёт: иначе оно проверяло бы
     // узнавание со вчера, а не память. Если такие все — эхо ждёт, пока пауза наберётся
     const cand=held.filter(r=>now-seen[r.id]>=ECHO_FRESH);
-    // состав: сначала вопросы со своим ответом (но не больше трёх: пять письменных ответов подряд утомляют)
-    // и разборы заблуждений; вопрос по картинке — не больше одного
-    const pri=r=>r.recall?0:r.misconception?1:2, out=[]; let figs=0, recs=0;
-    const fill=(pool,n,strict)=>{shuffle(pool).sort((x,y)=>pri(x)-pri(y)).forEach(r=>{
-      if(n<=0||out.includes(r)||(r.fig&&figs)||(strict&&r.recall&&recs>=3))return;
-      if(r.fig)figs++; if(r.recall)recs++; out.push(r); n--;});};
+    // состав. Сначала близнецы — та же цель в новой ситуации: так эхо проверяет знание, а не память о вопросе.
+    // Берутся цели, по которым в занятии был верный ответ, по одному близнецу на цель, сначала невиданные.
+    // Затем — вопросы занятия: со своим ответом и разборы заблуждений. Своих ответов не больше трёх,
+    // вопрос по картинке — не больше одного
+    const out=[]; let figs=0, recs=0;
+    const can=(r,strict)=>!out.includes(r)&&!(r.fig&&figs)&&!(strict&&r.recall&&recs>=3);
+    const add=r=>{if(r.fig)figs++; if(r.recall)recs++; out.push(r);};
+    const goalsHeld=new Set(held.map(r=>r.goal).filter(Boolean)), usedEcho=new Set(hist.filter(h=>h.mode==='echo').map(h=>h.id));
+    const byGoal={};
+    shuffle((t.twins||[]).filter(r=>goalsHeld.has(r.goal)&&ECHO_TYPES.has(r.type||'single')&&!usedEcho.has(r.id)&&!(seen[r.id]&&now-seen[r.id]<ECHO_FRESH)))
+      .sort((x,y)=>(seen[x.id]?1:0)-(seen[y.id]?1:0)).forEach(r=>{(byGoal[r.goal]=byGoal[r.goal]||[]).push(r);});
+    for(let more=true;more&&out.length<ECHO_N;){more=false;
+      shuffle(Object.keys(byGoal)).forEach(g=>{if(out.length>=ECHO_N)return; const r=byGoal[g].find(x=>can(x,true)); if(r){add(r); byGoal[g]=byGoal[g].filter(x=>x!==r); more=true;}});}
+    const pri=r=>r.recall?0:r.misconception?1:2;
+    const fill=(pool,n,strict)=>{shuffle(pool).sort((x,y)=>pri(x)-pri(y)).forEach(r=>{if(n<=0||!can(r,strict))return; add(r); n--;});};
     if(which==='d21'){
-      // через три недели: до трёх вопросов, выдержавших неделю, — видно, что держится дольше; остальные места —
-      // тем, кого в первом эхе не спрашивали
+      // через три недели: до трёх вопросов занятия, выдержавших неделю, остальные места — тем, кого не спрашивали
       const e7=hist.filter(h=>h.mode==='echo'&&h.echo==='d7'&&!h.retry), asked7=new Set(e7.map(h=>h.id));
       const ok7=new Set(e7.filter(h=>h.correct&&h.conf!=='guess').map(h=>h.id));
-      fill(cand.filter(r=>ok7.has(r.id)),3,true);
+      fill(cand.filter(r=>ok7.has(r.id)),Math.min(3,ECHO_N-out.length),true);
       fill(cand.filter(r=>!asked7.has(r.id)),ECHO_N-out.length,true);
     }
     fill(cand,ECHO_N-out.length,true);
@@ -1190,6 +1233,32 @@
     else if(ei.soon)p.push('будет '+fmtDay(ei.soon)+' — вопросы занятия недавно встречались');
     else if(ei.nextAt)p.push((p.length?'следующее — ':'')+fmtDay(ei.nextAt));
     return p.length?'Эхо: '+p.join(' · '):'';
+  }
+  // ---- Учебные цели занятия: до → после → через паузу на новой задаче ----
+  // Состояния цели: «было известно до занятия» — верно до чтения и сразу после; «закрепляется» — верно после
+  // занятия, паузы ещё не было; «устойчиво» — через неделю и позже верно и без «Угадываю» решён близнец цели
+  // (новая ситуация), и ошибок цели в очереди нет; «есть ошибка в повторении». Всё считается по истории
+  const GOAL_STATE={none:'ещё не было',knew:'было известно до занятия',fixing:'закрепляется',work:'есть ошибка в повторении',stable:'устойчиво'};
+  function goalStates(key){
+    const t=TOPICS_[key]; if(!user||!t||!Array.isArray(t.goals))return null;
+    const L=lessonStart(key), hist=user.history.filter(h=>h.ch===key);
+    const goalOf=id=>{const m=qLookup[id]; return m&&m.raw.goal;}, isTwin=id=>!!(qLookup[id]||{}).twin;
+    const rate=a=>a.length?{ok:a.filter(h=>h.correct&&h.conf!=='guess').length,n:a.length}:null;
+    return t.goals.map(g=>{
+      const H=hist.filter(h=>goalOf(h.id)===g.id), pre=H.filter(h=>h.mode==='pre');
+      const first={}; H.forEach(h=>{if(!h.mode&&!h.retry&&!isTwin(h.id)&&!(h.id in first))first[h.id]=h;});
+      const after=Object.values(first), main=H.filter(h=>!h.retry&&h.mode!=='pre'&&h.mode!=='practice');
+      const echo=w=>H.filter(h=>h.mode==='echo'&&h.echo===w&&!h.retry);
+      const ids=[...new Set(main.map(h=>h.id))], inQueue=ids.some(id=>{const e=user.srs[id]; return !!e&&e.box===0;});
+      const twinLate=main.filter(h=>isTwin(h.id)&&L&&h.t-L>=6*DAY), last=main[main.length-1];
+      const state=!main.length?'none':inQueue?'work':twinLate.some(h=>h.correct&&h.conf!=='guess')&&last.correct?'stable'
+        :pre.length&&pre.every(h=>h.correct)&&after.length&&after.every(h=>h.correct&&h.conf!=='guess')?'knew':'fixing';
+      return {goal:g, state, pre:rate(pre), after:rate(after), d7:rate(echo('d7')), d21:rate(echo('d21')), twins:rate(twinLate)};
+    });
+  }
+  function goalLine(key){
+    const gs=goalStates(key); if(!gs||!gs.some(g=>g.state!=='none'))return '';
+    return 'Цели: устойчиво '+gs.filter(g=>g.state==='stable').length+' из '+gs.length;
   }
   function echoSnoozed(){try{const v=+localStorage.getItem(ECHO_LATER+user.name); return !!v&&Date.now()<nextDayStart(v);}catch(e){return false;}}
   function startEcho(key){
@@ -1234,6 +1303,7 @@
       }
     }
     curItem=s.questions[s.idx];
+    if(!curItem.shownAt) curItem.shownAt=Date.now();
     $('qTitle').textContent=s.title;
     $('qCount').textContent=countText(s);
     $('qBar').style.width=(s.idx/s.total*100)+'%';
@@ -1574,13 +1644,23 @@
     commitAnswer(correct,note);
     persistSession();
   }
+  // если за выбранным неверным вариантом стоит известное заблуждение — короткая строка именно про него
+  function wrongNoteText(it){
+    const raw=(qLookup[it.id]||{}).raw; if(!raw)return '';
+    const f=answerFacts(it), ww=raw.whyWrong||{}, wr=raw.whyWrongReason||{};
+    if(f.pick!=null&&f.pick!==raw.correct&&ww[f.pick]) return ww[f.pick];
+    if(f.pr!=null&&f.pr!==raw.reasonCorrect&&wr[f.pr]) return wr[f.pr];
+    return '';
+  }
+  function wrongNote(it){const t=wrongNoteText(it); return t?'<span class="wnote"><b>Про выбранный вариант.</b> '+txt(t)+'</span>':'';}
   function commitAnswer(correct,note){
     const s=session;
     // вопрос до чтения — разминка: без истории, повторения, повтора в сессии и серий
     if(curItem.pre){
       s.answers[s.idx]=correct; lockConf();
+      if(!curItem.retry) recordPre(correct);
       G('pre',{id:curItem.id, correct:!!correct});
-      revealAnswer((correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+(curItem.misc?'<span class="mtag">Разбор заблуждения</span> ':'')+txt(curItem.why)+(note||'')+
+      revealAnswer((correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+(curItem.misc?'<span class="mtag">Разбор заблуждения</span> ':'')+txt(curItem.why)+(note||'')+(correct?'':wrongNote(curItem))+
         ' <i>Вопрос до чтения не идёт в зачёт: ответ вы встретите при чтении.</i>');
       return;
     }
@@ -1607,7 +1687,7 @@
       extra+=again?' <i>Этот вопрос вернётся через несколько вопросов, а затем завтра — в повторении.</i>':' <i>Вопрос вернётся завтра — в повторении.</i>';
     }
     revealAnswer((correct?'<b>✓ Верно.</b> ':'<b>✗ Неверно.</b> ')+
-      (curItem.misc?'<span class="mtag">Разбор заблуждения</span> ':'')+txt(curItem.why)+(note||'')+extra);
+      (curItem.misc?'<span class="mtag">Разбор заблуждения</span> ':'')+txt(curItem.why)+(note||'')+(correct?'':wrongNote(curItem))+extra);
     if(again){
       $('qCount').textContent=countText(s);
       qNext.textContent=(s.idx===s.total-1)?'Показать результат →':'Далее →';
@@ -1929,7 +2009,7 @@
         (!ok&&item.pick!=null?'<div class="you">Ваш ответ: '+yourAnswerHTML(item)+'</div>':'')+
         '<div class="rmap">'+(!ok&&(item.type==='match'||item.type==='order')?'<b>Верный ответ:</b><br>':'')+correctAnswerHTML(item)+'</div>'+
         (retryOf[i]!=null?'<div class="rnote">При повторе: '+(retryOf[i]?(ok?'закреплено':'исправлено'):(ok?'неверно':'снова неверно')+' — вопрос в очереди повторения')+'</div>':'')+
-        '<div class="ra" style="color:var(--muted);margin-top:6px">'+txt(item.why)+'</div>'+
+        '<div class="ra" style="color:var(--muted);margin-top:6px">'+txt(item.why)+(ok?'':wrongNote(item))+'</div>'+
         (item.whyFig?figsHTML(item.whyFig):'');
       return el;
     };
@@ -2082,7 +2162,7 @@
     const total=user.history.length;
     // точность — по первым попыткам: повтор сразу после разбора её бы завышал;
     // сессии «Повторения» (только трудные вопросы) не в счёт — иначе повторение снижало бы цифру
-    const firstRec=user.history.filter(h=>!h.retry&&h.mode!=='review');
+    const firstRec=user.history.filter(h=>!h.retry&&h.mode!=='review'&&h.mode!=='pre');
     const acc=firstRec.length?Math.round(firstRec.filter(h=>h.correct).length/firstRec.length*100):0;
     const mistakes=currentMistakes(), due=srsDue(), next=srsNextDate();
     $('dashSub').textContent='Пользователь: '+user.name+' · всего ответов: '+total;
@@ -2117,6 +2197,7 @@
       cp.appendChild(row);
     });
 
+    renderGoalStats();
     // вопросы очереди по главам; ответы свёрнуты: перечитывание перед повторением — узнавание, а не припоминание
     const ml=$('mistakeList'); ml.innerHTML='';
     if(!mistakes.length){ ml.innerHTML='<div class="empty">'+(total?'Сейчас в очереди повторения пусто.':'Пройдите любую главу — здесь появятся вопросы для повторения.')+'</div>'; }
@@ -2143,6 +2224,31 @@
   }
 
   // ---- Export of answers & mistakes ----
+  // измерения обучения по занятию — для взрослого: по каждой цели до → после → через неделю → через три недели,
+  // калибровка уверенности, выбранные заблуждения, время занятия. Ученик один, числа малые: это направление, а не оценка
+  function renderGoalStats(){
+    const box=$('goalStats'); if(!box)return; let h='';
+    const r=x=>x?x.ok+' из '+x.n:'—';
+    Object.keys(TOPICS_).forEach(key=>{
+      const t=TOPICS_[key], gs=goalStates(key); if(!gs||!gs.some(g=>g.state!=='none'))return;
+      const hist=user.history.filter(x=>x.ch===key), isTwin=id=>!!(qLookup[id]||{}).twin;
+      const ans=hist.filter(x=>!x.retry&&x.mode!=='pre'&&x.mode!=='practice');
+      const cal=[['sure','Знаю'],['unsure','Сомневаюсь'],['guess','Угадываю']].map(([k,l])=>{const a=ans.filter(x=>x.conf===k); return a.length?l+' — верно '+a.filter(x=>x.correct).length+' из '+a.length:'';}).filter(Boolean);
+      const wrongMyth=ans.filter(x=>{const raw=(qLookup[x.id]||{}).raw; return raw&&!x.correct&&((x.pick!=null&&(raw.whyWrong||{})[x.pick])||(x.pr!=null&&(raw.whyWrongReason||{})[x.pr]));});
+      const fixedLater=wrongMyth.filter(w=>ans.some(x=>x.id===w.id&&x.t>w.t&&x.correct)).length;
+      const L=lessonStart(key), day=hist.filter(x=>(x.mode==='pre'||(!x.mode&&!isTwin(x.id)))&&L&&Math.abs(x.t-L)<6*3600000);
+      const mins=day.length>1?Math.round((Math.max(...day.map(x=>x.t))-Math.min(...day.map(x=>x.t)))/60000):null;
+      h+='<details class="goals"><summary>Для взрослого: цели занятия «'+esc(t.title)+'» — устойчиво '+gs.filter(g=>g.state==='stable').length+' из '+gs.length+'</summary>'+
+        '<p class="sub">«До» — вопросы до чтения, «после» — первые ответы в занятии, «неделя» и «три недели» — эхо. Устойчиво — через неделю и позже верно решена задача в новой ситуации. Ученик один, числа малые: они показывают направление.</p>'+
+        // по цели — карточкой, а не таблицей: на экране телефона шесть колонок не помещаются
+        '<ul class="glist">'+gs.map(g=>'<li><b>'+esc(GOAL_STATE[g.state])+'.</b> '+txt(g.goal.text)+
+          '<span class="gnums">До: '+r(g.pre)+' · после: '+r(g.after)+' · через неделю: '+r(g.d7)+' · через три недели: '+r(g.d21)+'</span></li>').join('')+'</ul>'+
+        (cal.length?'<p class="sub">Уверенность и результат: '+esc(cal.join(' · '))+'.</p>':'')+
+        (wrongMyth.length?'<p class="sub">Выбраны варианты с известным заблуждением: '+wrongMyth.length+', позже ответ на тот же вопрос верный: '+fixedLater+'.</p>':'')+
+        (mins!=null?'<p class="sub">Время занятия: '+(mins<1?'меньше минуты':'около '+mins+' мин')+'.</p>':'')+'</details>';
+    });
+    box.innerHTML=h;
+  }
   function correctAnswerTextRaw(q){
     const t=q.type||'single';
     if(t==='single') return q.options[q.correct];
@@ -2209,7 +2315,7 @@
     const CL={sure:'знаю',unsure:'сомневаюсь',guess:'угадываю'};
     const rows=[['datetime','chapter','session','result','attempt','confidence','question']];
     user.history.forEach(h=>{
-      rows.push([localStamp(h.t,true), secTitle(h.ch), h.mode==='review'?'повторение':h.mode==='practice'?'работа над ошибками':h.mode==='echo'?'эхо занятия':'тест', h.correct?'верно':'ошибка', (h.mode==='practice'?h.again:h.retry)?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
+      rows.push([localStamp(h.t,true), secTitle(h.ch), h.mode==='review'?'повторение':h.mode==='practice'?'работа над ошибками':h.mode==='echo'?'эхо занятия':h.mode==='pre'?'до чтения':'тест', h.correct?'верно':'ошибка', (h.mode==='practice'?h.again:h.retry)?'повтор':'первая', CL[h.conf]||'', (qLookup[h.id]?qLookup[h.id].raw.q:(h.q||h.id))]);
     });
     const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
     download('bio-istoriya-'+safe(user.name)+'-'+dstamp()+'.csv', '﻿'+csv, 'text/csv;charset=utf-8');

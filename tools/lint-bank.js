@@ -52,6 +52,41 @@ for (const k in QUIZ) {
   err.forEach((x) => console.log('   ОШИБКА', x)); warn.slice(0, 6).forEach((x) => console.log('   предупр.', x)); if (warn.length > 6) console.log('   … ещё предупреждений: ' + (warn.length - 6));
   totalErr += err.length; totalWarn += warn.length;
 }
+// учебные цели тем: у каждого шага (кроме чтения) есть цель; у каждой цели — вопрос до чтения, вопрос после
+// и близнецы для эха. Близнецы (twins) проверяются по тому же стандарту, что вопросы
+for (const k of TOPIC_KEYS) {
+  const T = QUIZ[k], goals = Array.isArray(T.goals) ? T.goals : null, err = [], warn = [];
+  if (!goals) { if (T.twins) err.push('близнецы без целей goals'); }
+  else {
+    const gid = new Set();
+    goals.forEach((g) => { if (!g || !/^[\w-]+$/.test(g.id || '') || !g.text) err.push('цель без id или text'); else if (gid.has(g.id)) err.push('повтор цели ' + g.id); else gid.add(g.id); });
+    const steps = T.questions.filter((q) => q.type !== 'read'), twins = Array.isArray(T.twins) ? T.twins : [];
+    steps.forEach((q) => { if (!q.goal) err.push(q.id + ' без цели goal'); else if (!gid.has(q.goal)) err.push(q.id + ' цель ' + q.goal + ' не найдена'); });
+    const ids = new Set(T.questions.map((q) => q.id));
+    twins.forEach((q) => {
+      const e = (m) => err.push(q.id + ' (близнец) ' + m);
+      if (!new RegExp('^' + k + '-\\d{3}$').test(q.id)) e('id не вида ' + k + '-NNN'); if (ids.has(q.id)) e('повтор id'); ids.add(q.id);
+      if (q.type !== 'single' && q.type !== 'twotier') e('близнец — single или twotier');
+      if (!gid.has(q.goal)) e('нет цели ' + q.goal); if (q.pre) e('близнец не бывает вопросом до чтения'); if (q.fig) { if (!FIG[q.fig]) e('нет схемы ' + q.fig); }
+      structure(q).forEach(e); bannedTerms(q).forEach((t) => e('термин ' + t));
+      if (VERDICT_START.test(q.why || '')) e('why начинается с «Верно/Неверно»');
+      if (q.options && spread(q.options) > MAX_SPREAD) e('разброс options ' + spread(q.options));
+      if (q.reasons && spread(q.reasons) > MAX_SPREAD) e('разброс reasons ' + spread(q.reasons));
+      if (sentences(q.why || '') > MAX_WHY_SENT) warn.push(q.id + ' why ' + sentences(q.why) + ' предложений');
+      if (/учебник|параграф|§/i.test(JSON.stringify(q))) e('«учебник» или «параграф»');
+      const key = q.q.trim().toLowerCase(); if (stems[key]) e('условие совпадает с ' + stems[key]); stems[key] = q.id;
+    });
+    goals.forEach((g) => {
+      const of = (a) => a.filter((q) => q.goal === g.id);
+      if (!of(steps.filter((q) => q.pre)).length) err.push('цель ' + g.id + ': нет вопроса до чтения');
+      if (!of(steps.filter((q) => !q.pre)).length) err.push('цель ' + g.id + ': нет шага после чтения');
+      const n = of(twins).length; if (n < 2) (twins.length ? err : warn).push('цель ' + g.id + ': близнецов ' + n + ', нужно не меньше двух');
+    });
+    console.log(k + ' цели', JSON.stringify({ goals: goals.length, twins: twins.length }));
+  }
+  err.forEach((x) => console.log('   ОШИБКА', x)); warn.slice(0, 8).forEach((x) => console.log('   предупр.', x));
+  totalErr += err.length; totalWarn += warn.length;
+}
 // схемы: описание словами и подпись, сам рисунок или файл фотографии с автором и лицензией; лишние — на просмотр
 const usedFig = new Set(); for (const k in QUIZ) QUIZ[k].questions.forEach((q) => [q.fig, q.ref].concat(q.whyFig || []).filter(Boolean).forEach((f) => usedFig.add(f)));
 for (const f in FIG) { const d = FIG[f], e = [];

@@ -18,7 +18,8 @@
     const optText = (b) => T(b.querySelector('span:nth-child(2)')).trim();
     const clickText = (t) => { const b = optBtns().find((b) => optText(b) === t); if (!b) throw new Error('нет кнопки «' + t + '»'); b.click(); };
     const SECS = () => Object.assign({}, QUIZ, typeof TOPICS !== 'undefined' ? TOPICS : {});
-    const byQ = () => { const m = {}; Object.values(SECS()).forEach((c) => c.questions.forEach((q) => { m[q.q] = q; })); return m; };
+    // вопросы-близнецы занятий (twins) приходят в эхе и в повторе после ошибки — их робот тоже узнаёт
+    const byQ = () => { const m = {}; Object.values(SECS()).forEach((c) => c.questions.concat(c.twins || []).forEach((q) => { m[q.q] = q; })); return m; };
     // шаги тренажёра по теме: кнопки-переключатели (рисунок, элементы ответа) — отметить все или ни одного
     const markAll = (sel, on) => { [...document.querySelectorAll(sel)].forEach((b) => { if (b.classList.contains('sel') !== on) b.click(); }); };
     const orderRight = (q) => { for (let i = 0; i < q.items.length; i++) for (let g = 0; g < 10; g++) {
